@@ -154,30 +154,43 @@ class MedicalExpertNavbar extends Component {
               </NavItem>
             </Nav>
 
-            {/* PROFILE DROPDOWN */}
-            <UncontrolledDropdown nav inNavbar>
-              <DropdownToggle nav>
-                <img
-                  src="/default-profile.jpg"
-                  alt="Profile"
-                  className="profile-img"
-                />
-              </DropdownToggle>
+           {/* PROFILE DROPDOWN */}
+<UncontrolledDropdown nav inNavbar>
+  <DropdownToggle nav>
+    <img
+      src="/default-profile.jpg"
+      alt="Profile"
+      className="profile-img"
+    />
+  </DropdownToggle>
 
-              <DropdownMenu end>
-                <DropdownItem tag={Link} to="/Medical-dashboard/profile">
-                  View Profile
-                </DropdownItem>
-                <DropdownItem tag={Link} to="/Medical-dashboard/settings">
-                  Settings
-                </DropdownItem>
-                <div className="dropdown-footer">
-                  <DropdownItem tag={Link} to="/login" className="logout-btn">
-                    Logout
-                  </DropdownItem>
-                </div>
-              </DropdownMenu>
-            </UncontrolledDropdown>
+  <DropdownMenu end>
+    <DropdownItem tag={Link} to="/dashboard/profile">
+      View Profile
+    </DropdownItem>
+
+    <DropdownItem tag={Link} to="/dashboard/edit-profile">
+      Edit Profile
+    </DropdownItem>
+
+    <DropdownItem tag={Link} to="/dashboard/settings">
+      Settings
+    </DropdownItem>
+
+    <div className="dropdown-footer">
+      <DropdownItem
+        onClick={() => {
+          localStorage.removeItem("token"); // remove auth token
+          window.location.href = "/login"; // redirect to login page
+        }}
+        className="logout-btn text-danger"
+      >
+        Logout
+      </DropdownItem>
+    </div>
+  </DropdownMenu>
+</UncontrolledDropdown>
+
           </Collapse>
         </Navbar>
       </>
