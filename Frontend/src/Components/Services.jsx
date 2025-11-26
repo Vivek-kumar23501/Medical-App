@@ -33,11 +33,10 @@ const Services = () => {
 
   return (
     <>
-      {/* Tailwind animation overrides */}
       <style>
         {`
           .service-card {
-            transform: translateY(50px);
+            transform: translateY(60px);
             opacity: 0;
             transition: all 0.7s ease;
           }
@@ -51,9 +50,10 @@ const Services = () => {
         `}
       </style>
 
-      <div className="bg-[#e0f7fa] py-16 md:py-20 min-h-screen">
+      <div className="bg-[#e0f7fa] py-16">
         <div className="max-w-7xl mx-auto px-5">
-          <h2 className="text-center text-3xl md:text-4xl font-bold text-[#00695c] mb-12 font-['Roboto Slab']">
+
+          <h2 className="text-center text-3xl md:text-4xl font-bold text-[#004d40] mb-12 font-['Roboto Slab']">
             Our Services
           </h2>
 
@@ -61,29 +61,28 @@ const Services = () => {
             {services.map((service, index) => (
               <div
                 key={index}
-                className="service-card relative p-6 rounded-xl min-h-[250px] flex flex-col justify-center text-center text-white cursor-pointer
-                  shadow-lg transition-all duration-500
-                  bg-gradient-to-br from-[#00acc1] to-[#00796b] overflow-hidden
-                  hover:-translate-y-2 hover:scale-[1.03] hover:shadow-2xl"
+                className="service-card relative p-6 rounded-xl min-h-[250px] flex flex-col justify-center text-center cursor-pointer
+                  shadow-lg bg-[#00acc1]/15 hover:bg-[#00acc1]/25 transition-all
+                  hover:-translate-y-2 hover:shadow-2xl overflow-hidden"
               >
-                {/* Sliding Background Image */}
+                {/* Background Image Blur Style */}
                 <div
-                  className="service-image absolute left-[-120%] top-0 w-[120%] h-full opacity-20
-                    bg-cover bg-center rounded-xl group-hover:left-0 group-hover:opacity-30"
+                  className="service-image absolute inset-0 bg-cover bg-center opacity-20 blur-sm hover:opacity-30 hover:blur-[1px]"
                   style={{ backgroundImage: `url(${service.img})` }}
                 ></div>
 
                 <div className="relative z-10">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center bg-white/20 hover:bg-white/30 hover:scale-110 transition-all">
-                    {service.icon}
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center bg-[#00796b]/10 hover:bg-[#00796b]/20 transition-all">
+                    <span className="text-[#00796b]">{service.icon}</span>
                   </div>
 
-                  <h3 className="text-xl font-bold mb-2">{service.title}</h3>
+                  <h3 className="text-xl font-bold text-[#004d40] mb-2">{service.title}</h3>
 
-                  <p className="text-sm text-[#e0f7fa] leading-5">
+                  <p className="text-[#004d40] text-sm leading-5">
                     {service.description}
                   </p>
                 </div>
+
               </div>
             ))}
           </div>
