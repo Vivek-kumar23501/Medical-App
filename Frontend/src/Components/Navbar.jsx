@@ -188,58 +188,40 @@ class ExpertNavbar extends Component {
         </div>
 
         {/* MAIN NAVBAR */}
-        <Navbar expand="lg" light className="custom-navbar px-4">
+          <Navbar expand="lg" light className="custom-navbar px-4">
+        <Container>
           <NavbarBrand tag={Link} to="/">
-            <img src="/MedPulse logo.jpg" alt="MedPulse Logo" />
+            <img src="/MedPulse logo.jpg" alt="MedPulse Logo" style={{ height: "40px", marginRight: "10px" }} />
             MedPulse
-          </NavbarBrand>
+         
           <NavbarToggler onClick={this.toggle} />
           <Collapse isOpen={this.state.isOpen} navbar>
             <Nav className="mx-auto" navbar>
               <NavItem>
                 <NavLink tag={Link} to="/">Home</NavLink>
               </NavItem>
-
-              <UncontrolledDropdown nav inNavbar>
-                <DropdownToggle nav caret className="nav-link">Preventive Healthcare</DropdownToggle>
-                <DropdownMenu>
-                  <DropdownItem tag={Link} to="/health-awareness">Health Awareness</DropdownItem>
-                  <DropdownItem tag={Link} to="/hygiene">Hygiene Practices</DropdownItem>
-                  <DropdownItem tag={Link} to="/nutrition">Nutrition Guide</DropdownItem>
-                </DropdownMenu>
-              </UncontrolledDropdown>
-
-              <UncontrolledDropdown nav inNavbar>
-                <DropdownToggle nav caret className="nav-link">Diseases & Symptoms</DropdownToggle>
-                <DropdownMenu>
-                  <DropdownItem tag={Link} to="/common-diseases">Common Diseases</DropdownItem>
-                  <DropdownItem tag={Link} to="/symptom-checker">Symptom Checker</DropdownItem>
-                  <DropdownItem tag={Link} to="/early-detection">Early Detection</DropdownItem>
-                </DropdownMenu>
-              </UncontrolledDropdown>
-
-              <UncontrolledDropdown nav inNavbar>
-                <DropdownToggle nav caret className="nav-link">Vaccinations</DropdownToggle>
-                <DropdownMenu>
-                  <DropdownItem tag={Link} to="/child-vaccines">Child Vaccination</DropdownItem>
-                  <DropdownItem tag={Link} to="/adult-vaccines">Adult Vaccination</DropdownItem>
-                  <DropdownItem tag={Link} to="/govt-programs">Govt Programs</DropdownItem>
-                </DropdownMenu>
-              </UncontrolledDropdown>
-
-              <UncontrolledDropdown nav inNavbar>
-                <DropdownToggle nav caret className="nav-link">AI Chatbot</DropdownToggle>
-                <DropdownMenu>
-                  <DropdownItem tag={Link} to="/whatsapp-bot">WhatsApp Bot</DropdownItem>
-                  <DropdownItem tag={Link} to="/sms-bot">SMS Bot</DropdownItem>
-                  <DropdownItem tag={Link} to="/web-chat">Web Chatbot</DropdownItem>
-                </DropdownMenu>
-              </UncontrolledDropdown>
+             
+             
+              <NavItem>
+                <NavLink tag={Link} to="/purpose">Purpose of Platform</NavLink>
+              </NavItem>
+              <NavItem>
+                <NavLink tag={Link} to="/services">Services</NavLink>
+              </NavItem>
+              <NavItem>
+                <NavLink tag={Link} to="/how-it-works">How It Works</NavLink>
+              </NavItem>
+              <NavItem>
+                <NavLink tag={Link} to="/impact-stats">Impact Stats</NavLink>
+              </NavItem>
             </Nav>
 
             <Button className="login-btn" tag={Link} to="/login">Login</Button>
           </Collapse>
-        </Navbar>
+           </NavbarBrand>
+        </Container>
+      </Navbar>
+      
       </>
     );
   }
