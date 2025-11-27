@@ -11,9 +11,6 @@ import {
   DropdownToggle,
   DropdownMenu,
   DropdownItem,
-  Container,
-  Row,
-  Col,
 } from "reactstrap";
 import { Link } from "react-router-dom";
 
@@ -38,50 +35,18 @@ class DashboardNavbar extends Component {
           }
 
           body {
-            padding-top: 135px;
-          }
-
-          /* HIDE top logo bar on mobile */
-          @media (max-width: 767px) {
-            .top-logo-bar {
-              display: none !important;
-            }
-            body {
-              padding-top: 75px !important;
-            }
-          }
-
-          .top-logo-bar {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: #e0f7fa;
-            border-bottom: 1px solid #b2ebf2;
-            padding: 10px 0;
-            z-index: 1050;
-          }
-
-          .top-logo-bar img {
-            height: 65px;
-            margin: 0 10px;
-            object-fit: contain;
+            padding-top: 85px !important;
           }
 
           .custom-navbar {
             position: fixed;
-            top: 85px;
+            top: 0;
             width: 100%;
             background: #ffffff;
             min-height: 70px;
             border-bottom: 2px solid #00acc1;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             z-index: 1040;
-          }
-
-          @media (max-width: 767px) {
-            .custom-navbar {
-              top: 0;
-            }
           }
 
           .navbar-brand {
@@ -131,21 +96,7 @@ class DashboardNavbar extends Component {
           }
         `}</style>
 
-        {/* TOP LOGO BAR - Hidden on mobile */}
-        <div className="top-logo-bar">
-          <Container fluid>
-            <Row className="align-items-center">
-              <Col className="d-flex justify-content-center justify-content-md-start">
-                <img src="/who.jpeg" alt="WHO" />
-                <img src="/Ayushman.png" alt="Ayushman Bharat" />
-                <img src="/minstry.png" alt="Ministry" />
-                <img src="/Sihlogo.png" alt="SIH" />
-              </Col>
-            </Row>
-          </Container>
-        </div>
-
-        {/* MAIN NAVBAR */}
+        {/* MAIN NAVBAR ONLY */}
         <Navbar expand="lg" light className="custom-navbar px-4">
           <NavbarBrand tag={Link} to="/dashboard">
             <img src="/MedPulse logo.jpg" alt="Logo" />
@@ -163,7 +114,6 @@ class DashboardNavbar extends Component {
               <NavItem><NavLink tag={Link} to="/dashboard/health-queires">Health Queries</NavLink></NavItem>
             </Nav>
 
-            {/* PROFILE */}
             <UncontrolledDropdown nav inNavbar>
               <DropdownToggle nav>
                 <img src="/default-profile.jpg" className="profile-img" alt="Profile" />

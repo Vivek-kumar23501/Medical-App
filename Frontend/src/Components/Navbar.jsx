@@ -191,10 +191,12 @@ class ExpertNavbar extends Component {
           <Navbar expand="lg" light className="custom-navbar px-4">
         <Container>
           <NavbarBrand tag={Link} to="/">
-            <img src="/MedPulse logo.jpg" alt="MedPulse Logo" style={{ height: "40px", marginRight: "10px" }} />
+            <img src="/MedPulse logo.jpg" alt="MedPulse Logo" style={{ height: "40px", }} />
             MedPulse
          
-          <NavbarToggler onClick={this.toggle} />
+          <NavbarToggler style={{
+            
+          }} onClick={this.toggle} />
           <Collapse isOpen={this.state.isOpen} navbar>
             <Nav className="mx-auto" navbar>
               <NavItem>

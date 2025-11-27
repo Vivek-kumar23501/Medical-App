@@ -3,6 +3,12 @@ const bcrypt = require('bcryptjs');
 const validator = require('validator');
 
 const userSchema = new mongoose.Schema({
+uniqueUserId: {
+  type: String,
+  required: true,
+  unique: true,
+},
+
   name: {
     type: String,
     required: [true, 'Name is required'],
@@ -17,17 +23,7 @@ const userSchema = new mongoose.Schema({
     validate: [validator.isEmail, 'Please provide a valid email']
   },
 
-  // Mobile number field
-  mobile: {
-    type: String,
-    required: [true, 'Mobile number is required'],
-    validate: {
-      validator: function(v) {
-        return /^[\+]?[1-9][\d]{0,15}$/.test(v);
-      },
-      message: 'Please provide a valid mobile number'
-    }
-  },
+ 
 
   passwordHash: {
     type: String,

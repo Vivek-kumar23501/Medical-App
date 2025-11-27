@@ -3,83 +3,96 @@ const TokenManager = require('../utils/token');
 const GoogleAuth = require('../utils/googleAuth');
 const EmailService = require('../utils/emailService');
 
+const { v4: uuidv4 } = require("uuid");  // <-- Add this import at top
+
 // Signup Controller
 exports.signup = async (req, res) => {
   try {
-    const { name, email, mobile, password, role } = req.body;
+    console.log("Request Body => ", req.body);  // debug request body
 
-    if (!name || !email || !mobile || !password) {
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Name, email, mobile, and password are required'
+        message: "Name, email, and password are required",
       });
     }
 
     const existingUserByEmail = await User.findOne({ email });
     if (existingUserByEmail) {
-      return res.status(409).json({ success: false, message: 'User already exists with this email' });
-    }
-
-    const existingUserByMobile = await User.findOne({ mobile });
-    if (existingUserByMobile) {
-      return res.status(409).json({ success: false, message: 'User already exists with this mobile number' });
+      return res.status(409).json({
+        success: false,
+        message: "User already exists with this email",
+      });
     }
 
     const passwordHash = await User.hashPassword(password);
 
+    // Generate unique User ID using uuid + name
+    const namePrefix = name.split(" ")[0].toLowerCase();
+    const shortUUID = uuidv4().split("-")[0];
+    const uniqueUserId = `UID-${namePrefix}-${shortUUID}`;
+
     const user = new User({
       name,
       email,
-      mobile,
       passwordHash,
-      role: role || 'patient',
-      emailVerified: false
+      uniqueUserId,
+      role: role || "patient",
+      emailVerified: false,
     });
 
     await user.save();
 
-    // Generate OTP and save on user
+    // Generate OTP
     const otpCode = user.generateOTP();
     await user.save();
 
-    // Send OTP email (EmailService.sendOTPEmail should return an object { success: boolean, ... })
     let emailResult = { success: false };
     try {
       emailResult = await EmailService.sendOTPEmail(email, otpCode, name);
     } catch (err) {
-      // Email send failed but we still created the user and generated OTP.
-      console.error('EmailService.sendOTPEmail error:', err);
-      emailResult = { success: false, message: err.message || 'Email send failed' };
+      console.error("EmailService.sendOTPEmail error:", err);
     }
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: 'User created successfully. OTP sent for email verification.',
+      message: "User created successfully. OTP sent for email verification.",
       data: {
-        userId: user._id,
+        userId: uniqueUserId,
         email: user.email,
-        mobile: user.mobile,
         requiresVerification: true,
-        emailSent: !!emailResult.success
-      }
+        emailSent: emailResult.success,
+      },
     });
 
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error("Signup error:", error);
 
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({ success: false, message: errors.join(', ') });
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map((err) => err.message);
+      return res.status(400).json({
+        success: false,
+        message: errors.join(", "),
+      });
     }
 
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({ success: false, message: `User already exists with this ${field}` });
+      return res.status(409).json({
+        success: false,
+        message: `User already exists with this ${field}`,
+      });
     }
 
-    res.status(500).json({ success: false, message: 'Internal server error during signup' });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error during signup",
+    });
   }
 };
+
 
 // Login Controller
 exports.login = async (req, res) => {
@@ -87,32 +100,22 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required' });
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
     }
 
     const user = await User.findOne({ email });
     if (!user || !(await user.checkPassword(password))) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
-    }
-
-    if (user.isOTPVerificationRequired()) {
-      // generate a fresh OTP and send for verification
-      const otpCode = user.generateOTP();
-      await user.save();
-
-      try {
-        await EmailService.sendOTPEmail(email, otpCode, user.name);
-      } catch (err) {
-        console.error('Failed to send OTP during login:', err);
-      }
-
-      return res.status(403).json({
+      return res.status(401).json({
         success: false,
-        message: 'Email verification required',
-        requiresVerification: true,
-        data: { userId: user._id, email: user.email }
+        message: "Invalid email or password"
       });
     }
+
+    // Remove OTP requirement logic
+    // Directly generate access and refresh tokens
 
     const accessToken = TokenManager.generateAccessToken({
       userId: user._id,
@@ -120,20 +123,22 @@ exports.login = async (req, res) => {
       emailVerified: user.emailVerified
     });
 
-    const { token: refreshToken, jti } = TokenManager.generateRefreshToken({ userId: user._id, role: user.role });
+    const { token: refreshToken, jti } =
+      TokenManager.generateRefreshToken({ userId: user._id, role: user.role });
+
     await TokenManager.storeRefreshToken(user._id, jti);
 
     // set refresh token cookie
-    res.cookie('refreshToken', refreshToken, {
+    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.json({
+    return res.json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       data: {
         accessToken,
         user: {
@@ -148,10 +153,14 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error during login' });
+    console.error("Login error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error during login"
+    });
   }
 };
+
 
 // Google Login Controller
 exports.googleAuth = async (req, res) => {
@@ -425,35 +434,34 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
+      return res.status(400).json({ success: false, message: "Email is required" });
     }
 
     const user = await User.findOne({ email });
-    if (!user) {
-      // do not reveal user existence - respond success for security best practice
-      return res.json({ success: true, message: 'If an account exists, a password reset OTP has been sent' });
+
+    if (user) {
+      const otp = user.generateOTP();
+      await user.save();
+
+      try {
+        await EmailService.sendPasswordResetOTP(email, otp, user.name);
+      } catch (err) {
+        console.error("Failed to send password reset OTP:", err);
+      }
     }
 
-    const otp = user.generateOTP();
-    await user.save();
-
-    try {
-      await EmailService.sendPasswordResetOTP(email, otp, user.name);
-    } catch (err) {
-      console.error('Failed to send password reset OTP:', err);
-    }
-
-    res.json({
+    // Always respond success for security
+    return res.json({
       success: true,
-      message: 'Password reset OTP sent successfully (if account exists)',
-      data: { email }
+      message: "If the account exists, OTP has been sent to the email"
     });
 
   } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({ success: false, message: 'Failed to send password reset OTP' });
+    console.error("Forgot password error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
 
 // Reset Password Controller
 exports.resetPassword = async (req, res) => {
@@ -461,26 +469,28 @@ exports.resetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
     if (!email || !otp || !newPassword) {
-      return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required' });
+      return res.status(400).json({ success: false, message: "Email, OTP and new password are required" });
     }
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    // verify OTP (this will throw if invalid)
-    await user.verifyOTP(otp);
+    try {
+      await user.verifyOTP(otp);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+    }
 
-    // set new password
     user.passwordHash = await User.hashPassword(newPassword);
     await user.save();
 
-    res.json({
+    return res.json({
       success: true,
-      message: 'Password reset successfully'
+      message: "Password reset successfully"
     });
 
   } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(400).json({ success: false, message: error.message || 'Password reset failed' });
+    console.error("Reset password error:", error);
+    res.status(500).json({ success: false, message: "Server error during password reset" });
   }
 };

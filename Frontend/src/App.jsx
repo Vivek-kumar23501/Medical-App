@@ -6,7 +6,7 @@ import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
 import ForgetPassword from "./Pages/ForgetPassword";
 import UserDashboard from "./Pages/UserDashboard";
-
+import ChatSidebar from "./Components/ChatSidebar";
 import ProtectedRoute from "./Components/ProtectedRoute";
 import MedicalDashboard from "./Pages/MedicalDashboard";
 import AdminDashboard from "./Pages/AdminDashboard";

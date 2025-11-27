@@ -16,7 +16,6 @@ const Signup = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
-    mobile: "",
     otp: "",
     password: "",
     confirmPassword: "",
@@ -36,12 +35,9 @@ const Signup = () => {
     const newErrors = {};
 
     if (!form.name.trim()) newErrors.name = "Name is required";
+
     if (!form.email.trim()) newErrors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Invalid email format";
-
-    if (!form.mobile.trim()) newErrors.mobile = "Mobile number is required";
-    else if (!/^[0-9]{10,15}$/.test(form.mobile))
-      newErrors.mobile = "Enter a valid mobile number (10–15 digits)";
 
     if (!form.password || form.password.length < 6)
       newErrors.password = "Password must be at least 6 characters";
@@ -57,7 +53,6 @@ const Signup = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -77,7 +72,6 @@ const Signup = () => {
       const res = await axios.post("http://localhost:5000/auth/signup", {
         name: form.name,
         email: form.email,
-        mobile: form.mobile,
         password: form.password,
         role: form.role
       });
@@ -112,11 +106,8 @@ const Signup = () => {
 
       if (res.data.success) {
         setSuccess("Email verified successfully!");
-
-        // Store tokens
         localStorage.setItem("accessToken", res.data.data.accessToken);
         localStorage.setItem("user", JSON.stringify(res.data.data.user));
-
         setStep(3);
       }
     } catch (err) {
@@ -176,7 +167,7 @@ const Signup = () => {
 
             <Form onSubmit={handleSubmit}>
 
-              {/* ------------------- STEP 1 ------------------- */}
+              {/* STEP 1 */}
               {step === 1 && (
                 <>
                   <FormGroup>
@@ -202,19 +193,6 @@ const Signup = () => {
                       invalid={!!errors.email}
                     />
                     {errors.email && <div className="text-danger">{errors.email}</div>}
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label>Mobile Number *</Label>
-                    <Input
-                      className="input-rounded"
-                      name="mobile"
-                      value={form.mobile}
-                      onChange={handleChange}
-                      placeholder="10–15 digits"
-                      invalid={!!errors.mobile}
-                    />
-                    {errors.mobile && <div className="text-danger">{errors.mobile}</div>}
                   </FormGroup>
 
                   <FormGroup>
@@ -251,7 +229,7 @@ const Signup = () => {
                 </>
               )}
 
-              {/* ------------------- STEP 2 ------------------- */}
+              {/* STEP 2 */}
               {step === 2 && (
                 <>
                   <FormGroup>
@@ -277,7 +255,7 @@ const Signup = () => {
                 </>
               )}
 
-              {/* ------------------- STEP 3 ------------------- */}
+              {/* STEP 3 */}
               {step === 3 && (
                 <div className="success-step">
                   <div className="success-icon">✓</div>

@@ -1,17 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Search,
-  Plus,
-  User,
-  Send,
-  MessageCircle,
-  Mic,
-  Image,
-  Menu,
-} from "react-feather";
+import { Search, Plus, User, Send, MessageCircle, Mic, Image, Menu } from "react-feather";
 
-import UserDashboardNavbar from "./UserDashboardNavbar";
 import ChatbotNavbar from "./ChatbotNavbar";
+import ChatSidebar from "./ChatSidebar";   // <-- IMPORT THE SIDEBAR COMPONENT
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
@@ -40,16 +31,12 @@ const Chatbot = () => {
 
     window.addEventListener("resize", handleResize);
     handleResize();
-
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const chatHistory = [
-    "General Health",
-    "Symptoms Check",
-    "Diet Plans",
-    "Medicine Info",
-    "Appointment Booking",
+    "General Health", "Symptoms Check", "Diet Plans", "Medicine Info", "Appointment Booking",
+    "General Health", "Symptoms Check", "Diet Plans", "Medicine Info", "Appointment Booking"
   ];
 
   const sendMessage = () => {
@@ -81,18 +68,10 @@ const Chatbot = () => {
   return (
     <div className="fixed inset-0 bg-[#e0f7fa] overflow-hidden font-[Poppins]">
 
-      {/* DESKTOP NAVBAR */}
-      {!isMobile && <UserDashboardNavbar />}
+      {/* NAVBAR */}
+      <ChatbotNavbar isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
 
-      {/* MOBILE NAVBAR */}
-      {isMobile && (
-        <ChatbotNavbar
-          isSidebarOpen={isSidebarOpen}
-          setIsSidebarOpen={setIsSidebarOpen}
-        />
-      )}
-
-      {/* MOBILE MENU BUTTON */}
+      {/* Mobile Sidebar Toggle Button */}
       {isMobile && (
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -102,65 +81,21 @@ const Chatbot = () => {
         </button>
       )}
 
-      {/* MAIN CONTENT */}
-      <div className="flex h-[80vh] mt-[23vh] transition-all">
+      {/* MAIN LAYOUT */}
+      <div className="flex h-[90vh] mt-[10vh] transition-all bg-[#e0f7fa]">
 
         {/* SIDEBAR */}
-        <div
-          className={`
-            fixed md:static left-0 z-40 h-full w-64 md:w-1/5
-            transform duration-300
-            ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-            ${isMobile ? "mt-[10h]" : ""}
-          `}
-          style={{ background: "linear-gradient(135deg, #00acc1, #00796b)" }}
-        >
-          <div className="flex flex-col h-full p-4">
-
-            <button className="w-full bg-white text-blue-600 font-bold py-2 rounded-lg shadow mb-4 flex items-center justify-center">
-              <Plus size={16} className="mr-2" /> New Chat
-            </button>
-
-            {/* Search */}
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} />
-              <input
-                type="text"
-                placeholder="Search chat..."
-                className="w-full bg-white/80 pl-10 py-2 rounded-lg text-sm outline-none"
-              />
-            </div>
-
-            <h6 className="font-bold mb-2 text-[#e0f7fa]">Chat History</h6>
-
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-              {chatHistory.map((item, i) => (
-                <div
-                  key={i}
-                  className="bg-white/20 px-3 py-2 rounded-lg cursor-pointer text-sm hover:bg-white/30"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop Profile */}
-            <div className="hidden md:flex items-center mt-4 border-t border-white/40 pt-3">
-              <img
-                src="/Ayushman.png"
-                alt="profile"
-                className="w-12 h-12 rounded-full border-2 border-white"
-              />
-              <div className="ml-3">
-                <p className="text-sm font-semibold">User Name</p>
-                <p className="text-xs text-[#e0f7fa]">View Profile</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ChatSidebar
+          isSidebarOpen={isSidebarOpen}
+          isMobile={isMobile}
+          chatHistory={chatHistory}
+        />
 
         {/* CHAT AREA */}
-        <div className="flex-1 flex flex-col bg-[#e0f7fa]">
+        <div
+          style={{ margin:"10px 20px" }}
+          className="flex-1 flex flex-col bg-white rounded-lg shadow-lg"
+        >
           <div className="flex-1 p-5 overflow-y-auto flex flex-col">
             {messages.length === 0 ? (
               <div className="text-center text-gray-600 mt-10">
@@ -172,14 +107,11 @@ const Chatbot = () => {
               messages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`
-                    max-w-[80%] p-3 rounded-xl shadow mb-4 text-sm
-                    ${
-                      msg.sender === "user"
-                        ? "self-end bg-[#00acc1] text-white"
-                        : "self-start bg-white text-[#00796b]"
-                    }
-                  `}
+                  className={`max-w-[80%] p-3 rounded-xl shadow mb-4 text-sm ${
+                    msg.sender === "user"
+                      ? "self-end bg-[#00acc1] text-white"
+                      : "self-start bg-[#e0f7fa] text-[#00796b]"
+                  }`}
                 >
                   {msg.text}
                 </div>
@@ -188,16 +120,11 @@ const Chatbot = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
+          {/* INPUT AREA */}
           <div className="p-4 bg-white border-t-4 border-[#00acc1]">
             <div className="flex items-center">
-              <button className="p-2 text-[#00acc1]">
-                <Mic size={20} />
-              </button>
-
-              <button className="p-2 text-[#00acc1] mr-2">
-                <Image size={20} />
-              </button>
+              <button className="p-2 text-[#00acc1]"><Mic size={20} /></button>
+              <button className="p-2 text-[#00acc1] mr-2"><Image size={20} /></button>
 
               <input
                 ref={inputRef}
@@ -211,7 +138,7 @@ const Chatbot = () => {
 
               <button
                 onClick={sendMessage}
-                className="ml-3 bg-gradient-to-br from-[#00acc1] to-[#00796b] text-white px-4 py-3 rounded-lg font-bold shadow mr-[5%] md:mr-0"
+                className="ml-3 bg-gradient-to-br from-[#00acc1] to-[#00796b] text-white px-4 py-3 rounded-lg font-bold shadow"
               >
                 <Send size={16} className="inline mr-1" /> Send
               </button>
@@ -220,7 +147,7 @@ const Chatbot = () => {
         </div>
       </div>
 
-      {/* MOBILE OVERLAY */}
+      {/* OVERLAY FOR MOBILE BACKDROP */}
       {isMobile && isSidebarOpen && (
         <div
           className="md:hidden fixed inset-0 bg-black/50 z-20"
