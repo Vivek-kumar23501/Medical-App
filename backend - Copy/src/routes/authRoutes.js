@@ -16,6 +16,9 @@ router.post('/resend-otp', loginLimiter, authController.resendOTP);
 router.post('/refresh', refreshLimiter, authController.refreshToken);
 router.post('/logout', authenticateToken, authController.logout);
 router.get('/profile', authenticateToken, authController.profile);
+
+
+
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 
