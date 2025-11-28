@@ -1,12 +1,8 @@
 import React, { useEffect } from "react";
-import {
-  Bell,
-  MessageSquare,
-  UserCheck,
-  Globe,
-  Smartphone,
-  Mic,
-} from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { Bell, MessageSquare, UserCheck, Globe, Smartphone, Mic } from "lucide-react";
+import Navbar from "./Navbar";
+import Footer from "./Footer";
 
 const services = [
   { icon: <MessageSquare size={30} />, title: "Disease Awareness Bot", description: "Get AI-based disease awareness info.", img: "/images/disease.jpg" },
@@ -18,6 +14,9 @@ const services = [
 ];
 
 const Services = () => {
+  const location = useLocation();
+  const hideNavbarFooter = location.pathname === "/"; // hide on landing page
+
   useEffect(() => {
     const cards = document.querySelectorAll(".service-card");
     const observer = new IntersectionObserver(
@@ -33,6 +32,8 @@ const Services = () => {
 
   return (
     <>
+      {!hideNavbarFooter && <Navbar />}
+
       <style>
         {`
           .service-card {
@@ -52,7 +53,6 @@ const Services = () => {
 
       <div className="bg-[#e0f7fa] py-16">
         <div className="max-w-7xl mx-auto px-5">
-
           <h2 className="text-center text-3xl md:text-4xl font-bold text-[#004d40] mb-12 font-['Roboto Slab']">
             Our Services
           </h2>
@@ -65,7 +65,6 @@ const Services = () => {
                   shadow-lg bg-[#00acc1]/15 hover:bg-[#00acc1]/25 transition-all
                   hover:-translate-y-2 hover:shadow-2xl overflow-hidden"
               >
-                {/* Background Image Blur Style */}
                 <div
                   className="service-image absolute inset-0 bg-cover bg-center opacity-20 blur-sm hover:opacity-30 hover:blur-[1px]"
                   style={{ backgroundImage: `url(${service.img})` }}
@@ -82,13 +81,13 @@ const Services = () => {
                     {service.description}
                   </p>
                 </div>
-
               </div>
             ))}
           </div>
-
         </div>
       </div>
+
+      {!hideNavbarFooter && <Footer />}
     </>
   );
 };

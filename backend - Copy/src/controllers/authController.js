@@ -1,35 +1,30 @@
+require('dotenv').config();
 const User = require('../models/User');
 const TokenManager = require('../utils/token');
-const GoogleAuth = require('../utils/googleAuth');
 const EmailService = require('../utils/emailService');
+const { v4: uuidv4 } = require("uuid");
+const fs = require('fs');
+const path = require('path');
 
-const { v4: uuidv4 } = require("uuid");  // <-- Add this import at top
+// Helper: get full URL for profile picture
+const getProfilePictureURL = (filePath) => {
+  if (!filePath) return null;
+  const BASE_URL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+  return `${BASE_URL}/${filePath.replace(/\\/g, '/')}`;
+};
 
-// Signup Controller
+// ----------------- SIGNUP -----------------
 exports.signup = async (req, res) => {
   try {
-    console.log("Request Body => ", req.body);  // debug request body
-
     const { name, email, password, role } = req.body;
-
     if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Name, email, and password are required",
-      });
+      return res.status(400).json({ success: false, message: "Name, email, and password are required" });
     }
 
-    const existingUserByEmail = await User.findOne({ email });
-    if (existingUserByEmail) {
-      return res.status(409).json({
-        success: false,
-        message: "User already exists with this email",
-      });
-    }
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(409).json({ success: false, message: "User already exists with this email" });
 
     const passwordHash = await User.hashPassword(password);
-
-    // Generate unique User ID using uuid + name
     const namePrefix = name.split(" ")[0].toLowerCase();
     const shortUUID = uuidv4().split("-")[0];
     const uniqueUserId = `UID-${namePrefix}-${shortUUID}`;
@@ -40,21 +35,17 @@ exports.signup = async (req, res) => {
       passwordHash,
       uniqueUserId,
       role: role || "patient",
-      emailVerified: false,
+      emailVerified: false
     });
 
     await user.save();
 
-    // Generate OTP
     const otpCode = user.generateOTP();
     await user.save();
 
     let emailResult = { success: false };
-    try {
-      emailResult = await EmailService.sendOTPEmail(email, otpCode, name);
-    } catch (err) {
-      console.error("EmailService.sendOTPEmail error:", err);
-    }
+    try { emailResult = await EmailService.sendOTPEmail(email, otpCode, name); } 
+    catch (err) { console.error("EmailService.sendOTPEmail error:", err); }
 
     return res.status(201).json({
       success: true,
@@ -63,59 +54,32 @@ exports.signup = async (req, res) => {
         userId: uniqueUserId,
         email: user.email,
         requiresVerification: true,
-        emailSent: emailResult.success,
-      },
+        emailSent: emailResult.success
+      }
     });
 
   } catch (error) {
     console.error("Signup error:", error);
-
     if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map((err) => err.message);
-      return res.status(400).json({
-        success: false,
-        message: errors.join(", "),
-      });
+      const errors = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({ success: false, message: errors.join(", ") });
     }
-
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({
-        success: false,
-        message: `User already exists with this ${field}`,
-      });
+      return res.status(409).json({ success: false, message: `User already exists with this ${field}` });
     }
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error during signup",
-    });
+    return res.status(500).json({ success: false, message: "Internal server error during signup" });
   }
 };
 
-
-// Login Controller
+// ----------------- LOGIN -----------------
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required"
-      });
-    }
+    if (!email || !password) return res.status(400).json({ success: false, message: "Email and password are required" });
 
     const user = await User.findOne({ email });
-    if (!user || !(await user.checkPassword(password))) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password"
-      });
-    }
-
-    // Remove OTP requirement logic
-    // Directly generate access and refresh tokens
+    if (!user || !(await user.checkPassword(password))) return res.status(401).json({ success: false, message: "Invalid email or password" });
 
     const accessToken = TokenManager.generateAccessToken({
       userId: user._id,
@@ -123,12 +87,9 @@ exports.login = async (req, res) => {
       emailVerified: user.emailVerified
     });
 
-    const { token: refreshToken, jti } =
-      TokenManager.generateRefreshToken({ userId: user._id, role: user.role });
-
+    const { token: refreshToken, jti } = TokenManager.generateRefreshToken({ userId: user._id, role: user.role });
     await TokenManager.storeRefreshToken(user._id, jti);
 
-    // set refresh token cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -136,325 +97,170 @@ exports.login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
+    const userData = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      picture: getProfilePictureURL(user.profilePicture),
+      emailVerified: user.emailVerified
+    };
+
     return res.json({
       success: true,
       message: "Login successful",
       data: {
         accessToken,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          picture: user.picture,
-          emailVerified: user.emailVerified
-        }
+        user: userData
       }
     });
 
   } catch (error) {
     console.error("Login error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error during login"
-    });
+    res.status(500).json({ success: false, message: "Internal server error during login" });
   }
 };
 
-
-// Google Login Controller
-exports.googleAuth = async (req, res) => {
-  try {
-    const { idToken } = req.body;
-
-    if (!idToken) {
-      return res.status(400).json({ success: false, message: 'Google ID token is required' });
-    }
-
-    const googleUser = await GoogleAuth.verifyIdToken(idToken);
-
-    let user = await User.findOne({
-      $or: [{ googleId: googleUser.googleId }, { email: googleUser.email }]
-    });
-
-    if (!user) {
-      user = new User({
-        name: googleUser.name,
-        email: googleUser.email,
-        googleId: googleUser.googleId,
-        picture: googleUser.picture,
-        emailVerified: googleUser.emailVerified
-      });
-      await user.save();
-    } else if (!user.googleId) {
-      user.googleId = googleUser.googleId;
-      user.picture = googleUser.picture;
-      user.emailVerified = googleUser.emailVerified;
-      await user.save();
-    }
-
-    const accessToken = TokenManager.generateAccessToken({
-      userId: user._id,
-      role: user.role,
-      emailVerified: user.emailVerified
-    });
-
-    const { token: refreshToken, jti } = TokenManager.generateRefreshToken({ userId: user._id, role: user.role });
-    await TokenManager.storeRefreshToken(user._id, jti);
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    res.json({
-      success: true,
-      message: 'Google authentication successful',
-      data: {
-        accessToken,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          picture: user.picture,
-          emailVerified: user.emailVerified
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(401).json({ success: false, message: 'Google authentication failed' });
-  }
-};
-
-// Verify OTP Controller
+// ----------------- VERIFY OTP -----------------
 exports.verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
-
-    if (!email || !otp) {
-      return res.status(400).json({ success: false, message: 'Email and OTP are required' });
-    }
+    if (!email || !otp) return res.status(400).json({ success: false, message: "Email and OTP are required" });
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    // this will throw if invalid/expired/blocked
     await user.verifyOTP(otp);
+    user.emailVerified = true;
     await user.save();
 
-    // send welcome email (best-effort)
-    try {
-      await EmailService.sendWelcomeEmail(user.email, user.name);
-    } catch (err) {
-      console.error('Failed to send welcome email:', err);
-    }
+    try { await EmailService.sendWelcomeEmail(user.email, user.name); } 
+    catch (err) { console.error('Failed to send welcome email:', err); }
 
-    const accessToken = TokenManager.generateAccessToken({
-      userId: user._id,
-      role: user.role,
-      emailVerified: true
-    });
-
+    const accessToken = TokenManager.generateAccessToken({ userId: user._id, role: user.role, emailVerified: true });
     const { token: refreshToken, jti } = TokenManager.generateRefreshToken({ userId: user._id, role: user.role });
     await TokenManager.storeRefreshToken(user._id, jti);
 
-    res.cookie('refreshToken', refreshToken, {
+    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
+    const userData = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+      role: user.role,
+      picture: getProfilePictureURL(user.profilePicture),
+      emailVerified: user.emailVerified
+    };
+
     res.json({
       success: true,
-      message: 'Email verified successfully',
+      message: "Email verified successfully",
       data: {
         accessToken,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          mobile: user.mobile,
-          role: user.role,
-          picture: user.picture,
-          emailVerified: user.emailVerified
-        }
+        user: userData
       }
     });
 
   } catch (error) {
     console.error('OTP verification error:', error);
-    // If user.verifyOTP threw a custom Error, respond 400 with its message
-    res.status(400).json({ success: false, message: error.message || 'OTP verification failed' });
+    res.status(400).json({ success: false, message: error.message || "OTP verification failed" });
   }
 };
 
-// Resend OTP Controller
+// ----------------- RESEND OTP -----------------
 exports.resendOTP = async (req, res) => {
   try {
     const { email } = req.body;
-
-    if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    if (user.emailVerified) {
-      return res.status(400).json({ success: false, message: 'Email already verified' });
-    }
-
-    if (!user.canResendOTP()) {
-      return res.status(429).json({ success: false, message: 'OTP resend blocked. Try later.' });
-    }
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    if (user.emailVerified) return res.status(400).json({ success: false, message: "Email already verified" });
+    if (!user.canResendOTP()) return res.status(429).json({ success: false, message: "OTP resend blocked. Try later." });
 
     const otpCode = user.generateOTP();
     await user.save();
 
     let emailResult = { success: false };
-    try {
-      emailResult = await EmailService.sendOTPEmail(email, otpCode, user.name);
-    } catch (err) {
-      console.error('Error sending OTP on resend:', err);
-      emailResult = { success: false, message: err.message || 'Failed to send email' };
-    }
+    try { emailResult = await EmailService.sendOTPEmail(email, otpCode, user.name); } 
+    catch (err) { console.error('Error sending OTP:', err); }
 
-    res.json({
-      success: true,
-      message: 'OTP resent successfully',
-      data: {
-        emailSent: !!emailResult.success
-      }
-    });
+    res.json({ success: true, message: "OTP resent successfully", data: { emailSent: !!emailResult.success } });
 
   } catch (error) {
-    console.error('Resend OTP error:', error);
-    res.status(500).json({ success: false, message: 'Failed to resend OTP' });
+    console.error("Resend OTP error:", error);
+    res.status(500).json({ success: false, message: "Failed to resend OTP" });
   }
 };
 
-// Refresh Token Controller
+// ----------------- REFRESH TOKEN -----------------
 exports.refreshToken = async (req, res) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
-
-    if (!refreshToken) return res.status(401).json({ success: false, message: 'Refresh token required' });
+    if (!refreshToken) return res.status(401).json({ success: false, message: "Refresh token required" });
 
     const decoded = await TokenManager.verifyRefreshToken(refreshToken);
-
-    // revoke the old token jti
     await TokenManager.revokeRefreshToken(decoded.jti);
 
-    const accessToken = TokenManager.generateAccessToken({
-      userId: decoded.userId,
-      role: decoded.role
-    });
-
+    const accessToken = TokenManager.generateAccessToken({ userId: decoded.userId, role: decoded.role });
     const { token: newRefreshToken, jti } = TokenManager.generateRefreshToken({ userId: decoded.userId, role: decoded.role });
     await TokenManager.storeRefreshToken(decoded.userId, jti);
 
-    res.cookie('refreshToken', newRefreshToken, {
+    res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.json({
-      success: true,
-      message: 'Token refreshed successfully',
-      data: { accessToken }
-    });
+    res.json({ success: true, message: "Token refreshed", data: { accessToken } });
 
   } catch (error) {
-    console.error('Refresh token error:', error);
-    res.clearCookie('refreshToken');
-    res.status(403).json({ success: false, message: 'Invalid or expired refresh token' });
+    console.error("Refresh token error:", error);
+    res.clearCookie("refreshToken");
+    res.status(403).json({ success: false, message: "Invalid or expired refresh token" });
   }
 };
 
-// Logout Controller
+// ----------------- LOGOUT -----------------
 exports.logout = async (req, res) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
-
     if (refreshToken) {
       try {
         const decoded = await TokenManager.verifyRefreshToken(refreshToken);
         await TokenManager.revokeRefreshToken(decoded.jti);
-      } catch (err) {
-        // ignore verify errors - still clear cookie
-      }
+      } catch { /* ignore */ }
     }
-
-    res.clearCookie('refreshToken');
-
-    res.json({ success: true, message: 'Logout successful' });
-
+    res.clearCookie("refreshToken");
+    res.json({ success: true, message: "Logout successful" });
   } catch (error) {
-    console.error('Logout error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error during logout' });
+    console.error("Logout error:", error);
+    res.status(500).json({ success: false, message: "Internal server error during logout" });
   }
 };
 
-// Profile Controller
-exports.profile = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.userId).select('-passwordHash');
-
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    res.json({
-      success: true,
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          picture: user.picture,
-          createdAt: user.createdAt
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Profile error:', error);
-    res.status(500).json({ success: false, message: 'Internal server error fetching profile' });
-  }
-};
-
-// Forgot Password Controller
+// ----------------- FORGOT PASSWORD -----------------
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ success: false, message: "Email is required" });
-    }
+    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
     const user = await User.findOne({ email });
-
     if (user) {
       const otp = user.generateOTP();
       await user.save();
-
-      try {
-        await EmailService.sendPasswordResetOTP(email, otp, user.name);
-      } catch (err) {
-        console.error("Failed to send password reset OTP:", err);
-      }
+      try { await EmailService.sendPasswordResetOTP(email, otp, user.name); } 
+      catch (err) { console.error("Failed to send password reset OTP:", err); }
     }
 
-    // Always respond success for security
-    return res.json({
-      success: true,
-      message: "If the account exists, OTP has been sent to the email"
-    });
+    res.json({ success: true, message: "If the account exists, OTP has been sent to the email" });
 
   } catch (error) {
     console.error("Forgot password error:", error);
@@ -462,35 +268,84 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-
-// Reset Password Controller
+// ----------------- RESET PASSWORD -----------------
 exports.resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
-
-    if (!email || !otp || !newPassword) {
-      return res.status(400).json({ success: false, message: "Email, OTP and new password are required" });
-    }
+    if (!email || !otp || !newPassword) return res.status(400).json({ success: false, message: "Email, OTP and new password are required" });
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    try {
-      await user.verifyOTP(otp);
-    } catch (err) {
-      return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
-    }
+    try { await user.verifyOTP(otp); } 
+    catch { return res.status(400).json({ success: false, message: "Invalid or expired OTP" }); }
 
     user.passwordHash = await User.hashPassword(newPassword);
     await user.save();
 
-    return res.json({
-      success: true,
-      message: "Password reset successfully"
-    });
+    res.json({ success: true, message: "Password reset successfully" });
 
   } catch (error) {
     console.error("Reset password error:", error);
     res.status(500).json({ success: false, message: "Server error during password reset" });
+  }
+};
+
+// ----------------- GET CURRENT USER -----------------
+exports.getCurrentUser = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await User.findById(userId).select("-passwordHash -__v");
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    const userData = {
+      ...user.toObject(),
+      profilePicture: getProfilePictureURL(user.profilePicture)
+    };
+
+    res.json({ success: true, data: userData });
+  } catch (error) {
+    console.error("Get current user error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ----------------- UPDATE PROFILE -----------------
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { name, phone, address, bloodGroup, allergies, chronicDiseases } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    // Update fields
+    user.name = name ?? user.name;
+    user.phone = phone ?? user.phone;
+    user.address = address ?? user.address;
+    user.bloodGroup = bloodGroup ?? user.bloodGroup;
+    user.allergies = allergies ?? user.allergies;
+    user.chronicDiseases = chronicDiseases ?? user.chronicDiseases;
+
+    // Handle profile picture upload
+    if (req.file) {
+      // Delete old profile picture if exists
+      if (user.profilePicture && fs.existsSync(user.profilePicture)) {
+        fs.unlinkSync(user.profilePicture);
+      }
+      user.profilePicture = req.file.path; // save new path
+    }
+
+    await user.save();
+
+    const userData = {
+      ...user.toObject(),
+      profilePicture: getProfilePictureURL(user.profilePicture)
+    };
+
+    res.json({ success: true, message: "Profile updated successfully", data: userData });
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({ success: false, message: "Server error while updating profile" });
   }
 };

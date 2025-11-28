@@ -1,5 +1,8 @@
 import React, { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { PhoneCall, Siren, Baby, Hospital, Mic, MapPin } from "lucide-react";
+import Navbar from "./Navbar";
+import Footer from "./Footer";
 
 const scenarios = [
   {
@@ -47,6 +50,9 @@ const scenarios = [
 ];
 
 const ImpactScenarios = () => {
+  const location = useLocation();
+  const hideNavbarFooter = location.pathname === "/"; // hide on landing page
+
   useEffect(() => {
     const cards = document.querySelectorAll(".scenario-card");
     const observer = new IntersectionObserver(
@@ -62,6 +68,8 @@ const ImpactScenarios = () => {
 
   return (
     <>
+      {!hideNavbarFooter && <Navbar />}
+
       <style>
         {`
           .scenario-card {
@@ -93,7 +101,6 @@ const ImpactScenarios = () => {
                   shadow-lg bg-[#00acc1]/15 hover:bg-[#00acc1]/25 transition-all
                   hover:-translate-y-2 hover:shadow-2xl overflow-hidden"
               >
-                {/* Background Image Blur */}
                 <div
                   className="scenario-image absolute inset-0 bg-cover bg-center opacity-20 blur-sm hover:opacity-30 hover:blur-[1px]"
                   style={{ backgroundImage: `url(${scenario.img})` }}
@@ -105,16 +112,15 @@ const ImpactScenarios = () => {
                   </div>
 
                   <h3 className="text-xl font-bold text-[#004d40] mb-2">{scenario.title}</h3>
-
-                  <p className="text-[#004d40] text-sm leading-5">
-                    {scenario.description}
-                  </p>
+                  <p className="text-[#004d40] text-sm leading-5">{scenario.description}</p>
                 </div>
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {!hideNavbarFooter && <Footer />}
     </>
   );
 };

@@ -17,6 +17,11 @@ import Vaccination from "./Pages/Vaccination";
 import Profile from "./Components/Profile";
 import ExpertQueryList from "./Pages/ExpertQueryList";
 import MedicalBlogList from "./Pages/MedicalBlogList";
+import Services from "./Components/Services";
+import HowItWorks from "./Components/HowItWorks";
+import ProblemStatement from "./Components/ProblemStatement";
+import PurposeOfPlatform from "./Components/PurposeOfPlatform";
+import ImpactStats from "./Components/ImpactStats";
 
 function App() {
   return (
@@ -27,6 +32,11 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgetPassword />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/problem-statement" element={<ProblemStatement />} />
+        <Route path="/purpose" element={<PurposeOfPlatform />} />
+        <Route path="/impact-stats" element={<ImpactStats />} />
 
         {/* ---------------- User Dashboard ---------------- */}
         <Route

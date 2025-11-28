@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import axios from "axios";
 import {
   Navbar,
   NavbarBrand,
@@ -20,65 +21,108 @@ import { Link } from "react-router-dom";
 class MedicalExpertNavbar extends Component {
   constructor(props) {
     super(props);
-    this.state = { isOpen: false };
+    this.state = {
+      isOpen: false,
+      user: null,
+      loading: true,
+    };
   }
 
   toggle = () => {
     this.setState({ isOpen: !this.state.isOpen });
   };
 
+  componentDidMount() {
+    this.fetchUserProfile();
+  }
+
+  fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem("token"); // Access token
+      if (!token) return;
+
+      const res = await axios.get("http://localhost:5000/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.data.success) {
+        this.setState({ user: res.data.data, loading: false });
+      }
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+      this.setState({ loading: false });
+    }
+  };
+
+  handleLogout = () => {
+    localStorage.removeItem("token"); // remove auth token
+    window.location.href = "/login"; // redirect to login
+  };
+
   render() {
+    const { user } = this.state;
+
     return (
       <>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Roboto+Slab:wght@400;500;700&display=swap');
 
           * { font-family: "Poppins", sans-serif; }
-
           body { padding-top: 135px; }
-
           @media (max-width: 767px) { body { padding-top: 105px; } }
 
-          .top-logo-bar { position: fixed; top: 0; width: 100%; background: #e0f7fa; border-bottom: 1px solid #b2ebf2; padding: 10px 0; z-index: 1050; }
+          .top-logo-bar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: #e0f7fa;
+            border-bottom: 1px solid #b2ebf2;
+            padding: 10px 0;
+            z-index: 1050;
+          }
 
           .top-logo-bar img { height: 65px; margin: 0 10px; object-fit: contain; }
-
           @media (max-width: 767px) { .top-logo-bar img { height: 45px; } }
 
           @media (min-width: 767px) {
-          .custom-navbar {
-            position: fixed;
-            top: 75px;
-            margin-top: 10px; 
-            width: 100%;
-            background: #ffffff;
-            min-height: 70px;
-            border-bottom: 2px solid #00acc1;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            z-index: 1040;
+            .custom-navbar {
+              position: fixed;
+              top: 75px;
+              margin-top: 10px; 
+              width: 100%;
+              background: #ffffff;
+              min-height: 70px;
+              border-bottom: 2px solid #00acc1;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+              z-index: 1040;
+            }
           }
-        }
           @media (max-width: 767px) {
-             .custom-navbar {
-            position: fixed;
-            top: 85px;
-            margin-top: 10px; 
-            width: 100%;
-            background: #ffffff;
-            min-height: 70px;
-            border-bottom: 2px solid #00acc1;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            z-index: 1040;
+            .custom-navbar {
+              position: fixed;
+              top: 85px;
+              margin-top: 10px; 
+              width: 100%;
+              background: #ffffff;
+              min-height: 70px;
+              border-bottom: 2px solid #00acc1;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+              z-index: 1040;
+            }
           }
-        }
 
-
-          .navbar-brand { font-family: 'Roboto Slab', serif; font-size: 1.6rem !important; font-weight: 700 !important; color: #00695c !important; display: flex; align-items: center; }
+          .navbar-brand {
+            font-family: 'Roboto Slab', serif;
+            font-size: 1.6rem !important;
+            font-weight: 700 !important;
+            color: #00695c !important;
+            display: flex;
+            align-items: center;
+          }
 
           .navbar-brand img { height: 40px; margin-right: 10px; }
 
           .nav-link { font-weight: 500; font-size: 15px; color: #004d40 !important; padding: 8px 12px; border-radius: 6px; transition: 0.2s; }
-
           .nav-link:hover { color: #ffffff !important; background: #00acc1; transform: translateY(-1px); }
 
           .profile-img { height: 42px; width: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #00acc1; cursor: pointer; }
@@ -154,43 +198,39 @@ class MedicalExpertNavbar extends Component {
               </NavItem>
             </Nav>
 
-           {/* PROFILE DROPDOWN */}
-<UncontrolledDropdown nav inNavbar>
-  <DropdownToggle nav>
-    <img
-      src="/default-profile.jpg"
-      alt="Profile"
-      className="profile-img"
-    />
-  </DropdownToggle>
+            {/* PROFILE DROPDOWN */}
+            <UncontrolledDropdown nav inNavbar>
+              <DropdownToggle nav>
+                <img
+                  src={user?.profilePicture || "/default-profile.jpg"}
+                  alt="Profile"
+                  className="profile-img"
+                />
+              </DropdownToggle>
 
-  <DropdownMenu end>
-    <DropdownItem tag={Link} to="/dashboard/profile">
-      View Profile
-    </DropdownItem>
+              <DropdownMenu end>
+                <DropdownItem tag={Link} to="/Medical-dashboard/profile">
+                  View Profile
+                </DropdownItem>
 
-    <DropdownItem tag={Link} to="/dashboard/edit-profile">
-      Edit Profile
-    </DropdownItem>
+                <DropdownItem tag={Link} to="/Medical-dashboard/edit-profile">
+                  Edit Profile
+                </DropdownItem>
 
-    <DropdownItem tag={Link} to="/dashboard/settings">
-      Settings
-    </DropdownItem>
+                <DropdownItem tag={Link} to="/Medical-dashboard/settings">
+                  Settings
+                </DropdownItem>
 
-    <div className="dropdown-footer">
-      <DropdownItem
-        onClick={() => {
-          localStorage.removeItem("token"); // remove auth token
-          window.location.href = "/login"; // redirect to login page
-        }}
-        className="logout-btn text-danger"
-      >
-        Logout
-      </DropdownItem>
-    </div>
-  </DropdownMenu>
-</UncontrolledDropdown>
-
+                <div className="dropdown-footer">
+                  <DropdownItem
+                    onClick={this.handleLogout}
+                    className="logout-btn text-danger"
+                  >
+                    Logout
+                  </DropdownItem>
+                </div>
+              </DropdownMenu>
+            </UncontrolledDropdown>
           </Collapse>
         </Navbar>
       </>

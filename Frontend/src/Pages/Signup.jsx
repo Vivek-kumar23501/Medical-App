@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Form, FormGroup, Label, Input, Button, Alert, Spinner } from "reactstrap";
-import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import Navbar from "../Components/Navbar";
 import Footer from "../Components/Footer";
 
 const Signup = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     name: "",
@@ -24,24 +22,20 @@ const Signup = () => {
 
   const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+    if (error) setError("");
+  };
 
-  // ---------------- VALIDATION ---------------------
   const validateStep1 = () => {
     const newErrors = {};
-
     if (!form.name.trim()) newErrors.name = "Name is required";
-
     if (!form.email.trim()) newErrors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Invalid email format";
-
     if (!form.password || form.password.length < 6)
       newErrors.password = "Password must be at least 6 characters";
-
     if (form.password !== form.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match";
 
@@ -49,18 +43,6 @@ const Signup = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ---------------- FIELD CHANGE -------------------
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-  };
-
-  const handleSubmit = (e) => e.preventDefault();
-
-  // ---------------- STEP 1: SIGNUP -----------------
   const handleSignup = async () => {
     if (!validateStep1()) return;
 
@@ -87,7 +69,6 @@ const Signup = () => {
     }
   };
 
-  // ---------------- STEP 2: VERIFY OTP -------------
   const verifyOTP = async () => {
     if (!form.otp.trim()) {
       setError("Please enter the OTP");
@@ -106,8 +87,11 @@ const Signup = () => {
 
       if (res.data.success) {
         setSuccess("Email verified successfully!");
+        const safeUser = { ...res.data.data.user };
+        delete safeUser.passwordHash;
+        delete safeUser.refreshToken;
         localStorage.setItem("accessToken", res.data.data.accessToken);
-        localStorage.setItem("user", JSON.stringify(res.data.data.user));
+        localStorage.setItem("user", JSON.stringify(safeUser));
         setStep(3);
       }
     } catch (err) {
@@ -117,20 +101,14 @@ const Signup = () => {
     }
   };
 
-  // ---------------- RESEND OTP ---------------------
   const resendOTP = async () => {
     setLoading(true);
     setError("");
     setSuccess("");
 
     try {
-      const res = await axios.post("http://localhost:5000/auth/resend-otp", {
-        email: form.email
-      });
-
-      if (res.data.success) {
-        setSuccess("OTP resent successfully!");
-      }
+      const res = await axios.post("http://localhost:5000/auth/resend-otp", { email: form.email });
+      if (res.data.success) setSuccess("OTP resent successfully!");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to resend OTP");
     } finally {
@@ -138,149 +116,141 @@ const Signup = () => {
     }
   };
 
-  // ---------------- GO TO LOGIN --------------------
   const handleLoginRedirect = () => navigate("/login");
 
   return (
     <>
       <Navbar />
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="flex flex-col md:flex-row max-w-4xl w-full rounded-xl shadow-lg overflow-hidden bg-white">
 
-      <div className="page-wrap">
-        <div className="split-card">
-
-          {/* LEFT SIDE DESIGN PANEL */}
-          <div className="service-card">
+          {/* LEFT PANEL */}
+          <div className="md:w-1/2 flex flex-col items-center justify-center bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white p-10">
             <div
-              className="service-image"
-              style={{ backgroundImage: `url('/images/medpulse-signup.jpg')` }}
+              className="w-40 h-40 rounded-full border-4 border-white bg-cover bg-center mb-6"
+              style={{ backgroundImage: "url('/MedPulse logo.jpg')" }}
             />
-            <h2>Join <span>MedPulse</span></h2>
-            <p>Get AI-driven healthcare alerts & preventive tools.</p>
+            <h2 className="text-3xl font-bold mb-3 text-center">
+              Join <span className="text-yellow-400">MedPulse</span>
+            </h2>
+            <p className="text-lg text-center">
+              Get AI-driven healthcare alerts & preventive tools.
+            </p>
           </div>
 
-          {/* RIGHT SIDE FORM */}
-          <div className="form-panel">
-            <h2>Create your MedPulse account</h2>
+          {/* RIGHT FORM PANEL */}
+          <div className="md:w-1/2 p-10 flex flex-col justify-center">
+            <h2 className="text-2xl font-bold text-teal-900 mb-6 text-center">
+              Create your MedPulse account
+            </h2>
 
-            {error && <Alert color="danger">{error}</Alert>}
-            {success && <Alert color="success">{success}</Alert>}
+            {error && <div className="mb-4 text-red-600 text-center font-medium">{error}</div>}
+            {success && <div className="mb-4 text-green-600 text-center font-medium">{success}</div>}
 
-            <Form onSubmit={handleSubmit}>
-
-              {/* STEP 1 */}
-              {step === 1 && (
-                <>
-                  <FormGroup>
-                    <Label>Name *</Label>
-                    <Input
-                      className="input-rounded"
-                      name="name"
-                      value={form.name}
-                      onChange={handleChange}
-                      invalid={!!errors.name}
-                    />
-                    {errors.name && <div className="text-danger">{errors.name}</div>}
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label>Email *</Label>
-                    <Input
-                      className="input-rounded"
-                      type="email"
-                      name="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      invalid={!!errors.email}
-                    />
-                    {errors.email && <div className="text-danger">{errors.email}</div>}
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label>Password *</Label>
-                    <Input
-                      className="input-rounded"
-                      type="password"
-                      name="password"
-                      value={form.password}
-                      onChange={handleChange}
-                      invalid={!!errors.password}
-                    />
-                    {errors.password && <div className="text-danger">{errors.password}</div>}
-                  </FormGroup>
-
-                  <FormGroup>
-                    <Label>Confirm Password *</Label>
-                    <Input
-                      className="input-rounded"
-                      type="password"
-                      name="confirmPassword"
-                      value={form.confirmPassword}
-                      onChange={handleChange}
-                      invalid={!!errors.confirmPassword}
-                    />
-                    {errors.confirmPassword && (
-                      <div className="text-danger">{errors.confirmPassword}</div>
-                    )}
-                  </FormGroup>
-
-                  <Button className="btn-primary-custom" onClick={handleSignup} disabled={loading}>
-                    {loading ? <Spinner size="sm" /> : "Create Account & Send OTP"}
-                  </Button>
-                </>
-              )}
-
-              {/* STEP 2 */}
-              {step === 2 && (
-                <>
-                  <FormGroup>
-                    <Label>Enter OTP *</Label>
-                    <Input
-                      className="input-rounded"
-                      name="otp"
-                      value={form.otp}
-                      onChange={handleChange}
-                      placeholder="6-digit OTP"
-                    />
-                  </FormGroup>
-
-                  <Button className="btn-primary-custom" onClick={verifyOTP} disabled={loading}>
-                    {loading ? <Spinner size="sm" /> : "Verify OTP"}
-                  </Button>
-
-                  <div className="otp-resend">
-                    <button type="button" onClick={resendOTP} disabled={loading}>
-                      {loading ? "Sending..." : "Resend OTP"}
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {/* STEP 3 */}
-              {step === 3 && (
-                <div className="success-step">
-                  <div className="success-icon">✓</div>
-                  <h3>Account Created Successfully!</h3>
-                  <p>Your email has been verified. You can now continue.</p>
-
-                  <Button className="btn-primary-custom" onClick={handleLoginRedirect}>
-                    Continue to Dashboard
-                  </Button>
-                </div>
-              )}
-            </Form>
-
-            {step !== 3 && (
-              <div className="links-row">
-                <div>Already have an account? <Link to="/login">Login</Link></div>
-                <div>|</div>
-                <div><Link to="/forgot-password">Forgot password?</Link></div>
+            {step === 1 && (
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Name"
+                  value={form.name}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00acc1]"
+                />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Email"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00acc1]"
+                />
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Password"
+                  value={form.password}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00acc1]"
+                />
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  placeholder="Confirm Password"
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00acc1]"
+                />
+                <button
+                  onClick={handleSignup}
+                  disabled={loading}
+                  className="w-full py-3 bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white font-semibold rounded-lg hover:shadow-lg transition-all"
+                >
+                  {loading ? "Sending..." : "Create Account & Send OTP"}
+                </button>
               </div>
             )}
 
+            {step === 2 && (
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  name="otp"
+                  placeholder="Enter OTP"
+                  value={form.otp}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00acc1]"
+                />
+                <button
+                  onClick={verifyOTP}
+                  disabled={loading}
+                  className="w-full py-3 bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white font-semibold rounded-lg hover:shadow-lg transition-all"
+                >
+                  {loading ? "Verifying..." : "Verify OTP"}
+                </button>
+                <button
+                  onClick={resendOTP}
+                  disabled={loading}
+                  className="mt-2 text-[#00acc1] font-semibold hover:underline"
+                >
+                  {loading ? "Resending..." : "Resend OTP"}
+                </button>
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="text-center space-y-4">
+                <div className="text-5xl text-green-500">✓</div>
+                <h3 className="text-xl font-semibold">Account Created Successfully!</h3>
+                <p>Your email has been verified. You can now continue.</p>
+                <button
+                  onClick={handleLoginRedirect}
+                  className="w-full py-3 bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white font-semibold rounded-lg hover:shadow-lg transition-all"
+                >
+                  Continue to Dashboard
+                </button>
+              </div>
+            )}
+
+            {/* LINKS SECTION */}
+            <div className="mt-6 text-center text-sm space-y-1">
+              <div>
+                Already have an account?{" "}
+                <Link to="/login" className="text-[#00acc1] font-semibold hover:underline">
+                  Login
+                </Link>
+              </div>
+              <div>
+                <Link to="/forgot-password" className="text-[#00acc1] font-semibold hover:underline">
+                  Forgot Password?
+                </Link>
+              </div>
+            </div>
+
           </div>
+
         </div>
       </div>
-
       <Footer />
     </>
   );

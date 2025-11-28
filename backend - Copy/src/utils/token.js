@@ -7,11 +7,14 @@ class TokenManager {
   // Generate Access Token
   // -------------------------
   static generateAccessToken(payload) {
-    return jwt.sign(
-      payload,
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "15m" }
-    );
+    return jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+  }
+
+  // -------------------------
+  // Verify Access Token
+  // -------------------------
+  static verifyAccessToken(token) {
+    return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
   }
 
   // -------------------------
@@ -19,48 +22,34 @@ class TokenManager {
   // -------------------------
   static generateRefreshToken(payload) {
     const jti = crypto.randomUUID();
-
-    const token = jwt.sign(
-      { ...payload, jti },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: "7d" }
-    );
-
+    const token = jwt.sign({ ...payload, jti }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
     return { token, jti };
   }
 
-  // ---------------------------------
-  // STORE REFRESH TOKEN (FIXED)
-  // ---------------------------------
+  // -------------------------
+  // Store Refresh Token
+  // -------------------------
   static async storeRefreshToken(userId, jti) {
     return await RefreshToken.create({
       jti,
       userId,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     });
   }
 
-  // ---------------------------------
-  // VERIFY REFRESH TOKEN
-  // ---------------------------------
+  // -------------------------
+  // Verify Refresh Token
+  // -------------------------
   static async verifyRefreshToken(token) {
-    const decoded = jwt.verify(
-      token,
-      process.env.REFRESH_TOKEN_SECRET
-    );
-
+    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
     const storedToken = await RefreshToken.findOne({ jti: decoded.jti });
-
-    if (!storedToken) {
-      throw new Error("Refresh token not found or revoked");
-    }
-
+    if (!storedToken) throw new Error("Refresh token not found or revoked");
     return decoded;
   }
 
-  // ---------------------------------
-  // REVOKE REFRESH TOKEN
-  // ---------------------------------
+  // -------------------------
+  // Revoke Refresh Token
+  // -------------------------
   static async revokeRefreshToken(jti) {
     await RefreshToken.findOneAndDelete({ jti });
   }

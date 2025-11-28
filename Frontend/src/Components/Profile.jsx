@@ -1,219 +1,184 @@
-import React, { useState } from "react";
-import { Edit, Save, Phone, Mail, Droplets, MapPin, Camera, Send } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import Navbar from "../Components/Navbar";
+import Footer from "../Components/Footer";
 
-const Profile = () => {
+const UserProfile = () => {
+  const [user, setUser] = useState(null);
+  const [editableUser, setEditableUser] = useState({});
   const [isEditing, setIsEditing] = useState(false);
-  const [showOtpField, setShowOtpField] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [isVerified, setIsVerified] = useState(true); // initially verified
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const [profile, setProfile] = useState({
-    img: "/MedPulse logo.jpg",
-    name: "vivek kumar",
-    phone: "+91 9876543210",
-    email: "vivekkumarbth05@gmail.com",
-    bloodGroup: "O+",
-    address: {
-      house: "123A",
-      street: "MG Road",
-      city: "Patna",
-      state: "Bihar",
-      pin: "800001",
-      country: "India",
-    },
-  });
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return setLoading(false);
+      try {
+        const res = await axios.get("http://localhost:5000/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.data.success) {
+          setUser(res.data.data);
+          setEditableUser(res.data.data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, []);
 
-  const handleInputChange = (field, value, isAddress = false) => {
-    if (field === "email") {
-      setIsVerified(false);
-      setShowOtpField(true);
-    }
+  const handleSave = async () => {
+    const token = localStorage.getItem("token");
+    setSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append("name", editableUser.name || "");
+      formData.append("phone", editableUser.phone || "");
+      formData.append("address", editableUser.address || "");
+      formData.append("bloodGroup", editableUser.bloodGroup || "");
+      formData.append("allergies", editableUser.allergies || "");
+      formData.append("chronicDiseases", editableUser.chronicDiseases || "");
+      if (editableUser.profileFile)
+        formData.append("profilePicture", editableUser.profileFile);
 
-    if (isAddress) {
-      setProfile({
-        ...profile,
-        address: {
-          ...profile.address,
-          [field]: value,
+      const res = await axios.put("http://localhost:5000/auth/me", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
         },
       });
-    } else {
-      setProfile({ ...profile, [field]: value });
+
+      if (res.data.success) {
+        setUser(res.data.data);
+        setEditableUser({ ...res.data.data, profileFile: null });
+        setIsEditing(false);
+        alert("Profile updated!");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update profile");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const toggleEdit = () => {
-    if (isEditing && !isVerified) {
-      alert("⚠ Please verify your new email before saving!");
-      return;
-    }
-    setIsEditing(!isEditing);
-  };
-
-  const handleRequestOtp = () => {
-    alert("📩 OTP sent to your new email! (Backend API needed)");
-  };
-
-  const handleVerifyOtp = () => {
-    if (otp.trim() === "") {
-      alert("Enter OTP to verify!");
-      return;
-    }
-    setIsVerified(true);
-    setShowOtpField(false);
-    alert("✔ Email Verified Successfully!");
-  };
+  if (loading)
+    return <p className="text-center mt-10 text-gray-500">Loading...</p>;
+  if (!user)
+    return <p className="text-center mt-10 text-red-500">User not found</p>;
 
   return (
-    <div className="bg-[#e0f7fa] min-h-screen py-16 px-6 flex justify-center">
-      <div className="max-w-3xl w-full bg-white shadow-2xl rounded-2xl p-10 relative transition-all border-t-8 border-[#00796b]">
-
-        {/* Edit / Save Button */}
-        <button
-          onClick={toggleEdit}
-          className={`absolute top-6 right-6 p-3 rounded-full transition-all 
-            ${isEditing 
-              ? "bg-[#ff9800] text-white hover:bg-[#e68900]" 
-              : "bg-[#00796b] text-white hover:bg-[#005f50]"}`
-          }
-        >
-          {isEditing ? <Save size={20} /> : <Edit size={20} />}
-        </button>
-
-        {/* Profile Image */}
-        <div className="relative w-32 h-32 mx-auto">
-          <img
-            src={profile.img}
-            alt="Profile"
-            className="w-32 h-32 rounded-full object-cover border-4 border-[#00796b] shadow-md"
-          />
-          {isEditing && (
-            <button className="absolute bottom-1 right-1 bg-[#00796b] text-white p-2 rounded-full">
-              <Camera size={15} />
-            </button>
-          )}
+    <>
+      
+      <div className="max-w-3xl mx-auto mt-12">
+        <div className="bg-gradient-to-r from-teal-400 to-teal-600 rounded-t-xl h-40 relative">
+          <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
+            <img
+              src={
+                editableUser.profileFile
+                  ? URL.createObjectURL(editableUser.profileFile)
+                  : user.profilePicture || "/default.png"
+              }
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
+            {isEditing && (
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  setEditableUser({
+                    ...editableUser,
+                    profileFile: e.target.files[0],
+                  })
+                }
+                className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-white rounded-md p-1 cursor-pointer text-sm"
+              />
+            )}
+          </div>
         </div>
 
-        {/* Name */}
-        {isEditing ? (
-          <input
-            type="text"
-            className="text-2xl font-bold text-center w-full mt-4 border-b-2 border-[#00796b] outline-none"
-            value={profile.name}
-            onChange={(e) => handleInputChange("name", e.target.value)}
-          />
-        ) : (
-          <h2 className="text-3xl text-center font-bold mt-4 text-[#004d40]">
-            {profile.name}
+        <div className="bg-white mt-20 rounded-b-xl shadow-lg p-6 text-center">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+            {editableUser.name || "User Name"}
           </h2>
-        )}
+          <p className="text-gray-500 mb-4">{user.email}</p>
 
-        {/* Details */}
-        <div className="mt-8 space-y-4 text-[#004d40]">
-
-          {/* Phone */}
-          <div className="flex gap-3 items-center bg-[#e0f2f1] p-3 rounded-lg">
-            <Phone size={20} />
-            {isEditing ? (
-              <input
-                type="text"
-                className="bg-transparent w-full outline-none"
-                value={profile.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-              />
-            ) : (
-              <span>{profile.phone}</span>
-            )}
-          </div>
-
-          {/* Email + OTP Section */}
-          <div className="bg-[#e0f2f1] p-3 rounded-lg space-y-2">
-            <div className="flex gap-3 items-center">
-              <Mail size={20} />
-              {isEditing ? (
-                <input
-                  type="email"
-                  className="bg-transparent w-full outline-none"
-                  value={profile.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                />
-              ) : (
-                <span>{profile.email}</span>
-              )}
-            </div>
-
-            {isEditing && showOtpField && (
-              <div className="mt-2 flex items-center gap-3">
-                <input
-                  type="text"
-                  placeholder="Enter OTP"
-                  className="border border-[#00796b] rounded-xl px-3 py-1 w-full outline-none"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                />
-                <button
-                  onClick={handleRequestOtp}
-                  className="bg-[#00acc1] text-white py-1 px-3 rounded-lg hover:bg-[#008b92]"
-                >
-                  <Send size={16} />
-                </button>
-                <button
-                  onClick={handleVerifyOtp}
-                  className="bg-green-600 text-white py-1 px-3 rounded-lg hover:bg-green-700"
-                >
-                  Verify
-                </button>
-              </div>
-            )}
-
-            {!isVerified && isEditing && (
-              <p className="text-red-600 text-xs mt-1">
-                * Please verify your new email!
-              </p>
-            )}
-          </div>
-
-          {/* Blood */}
-          <div className="flex gap-3 items-center bg-[#e0f2f1] p-3 rounded-lg">
-            <Droplets size={20} />
-            {isEditing ? (
-              <input
-                type="text"
-                className="bg-transparent w-full outline-none"
-                value={profile.bloodGroup}
-                onChange={(e) => handleInputChange("bloodGroup", e.target.value)}
-              />
-            ) : (
-              <span>Blood Group: {profile.bloodGroup}</span>
-            )}
-          </div>
-
-          {/* Address */}
-          <div className="flex gap-3 items-start bg-[#e0f2f1] p-3 rounded-lg">
-            <MapPin size={20} className="mt-1" />
-            <div className="w-full space-y-1">
-              {Object.keys(profile.address).map((field) =>
-                isEditing ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left mt-6">
+            {[
+              ["Name", "name"],
+              ["Phone", "phone"],
+              ["Address", "address"],
+              ["Blood Group", "bloodGroup"],
+              ["Allergies", "allergies"],
+              ["Chronic Diseases", "chronicDiseases"],
+            ].map(([label, field]) => (
+              <div key={field}>
+                <p className="text-gray-700 font-medium">{label}:</p>
+                {isEditing ? (
                   <input
-                    key={field}
                     type="text"
-                    className="bg-transparent w-full outline-none"
-                    value={profile.address[field]}
+                    value={editableUser[field] || ""}
                     onChange={(e) =>
-                      handleInputChange(field, e.target.value, true)
+                      setEditableUser({
+                        ...editableUser,
+                        [field]: e.target.value,
+                      })
                     }
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 ) : (
-                  <p key={field}>{profile.address[field]}</p>
-                )
-              )}
+                  <p className="mt-1 text-gray-600">{user[field] || "-"}</p>
+                )}
+              </div>
+            ))}
+
+            <div>
+              <p className="text-gray-700 font-medium">Email Verified:</p>
+              <p className="mt-1 text-gray-600">
+                {user.emailVerified ? "Yes" : "No"}
+              </p>
             </div>
           </div>
-        </div>
 
+          <div className="mt-6 flex justify-center space-x-4">
+            {isEditing ? (
+              <>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-teal-500 text-white px-6 py-2 rounded-full hover:bg-teal-600 transition"
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditableUser(user);
+                  }}
+                  className="bg-gray-300 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-400 transition"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="bg-teal-500 text-white px-6 py-2 rounded-full hover:bg-teal-600 transition"
+              >
+                Edit Profile
+              </button>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 };
 
-export default Profile;
+export default UserProfile;

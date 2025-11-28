@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import axios from "axios";
 import {
   Navbar,
   NavbarBrand,
@@ -17,26 +18,54 @@ import { Link } from "react-router-dom";
 class DashboardNavbar extends Component {
   constructor(props) {
     super(props);
-    this.state = { isOpen: false };
+    this.state = { 
+      isOpen: false,
+      user: null,
+      loading: true
+    };
   }
 
   toggle = () => {
     this.setState({ isOpen: !this.state.isOpen });
   };
 
+  componentDidMount() {
+    this.fetchUserProfile();
+  }
+
+  fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem("token"); // access token
+      if (!token) return;
+
+      const res = await axios.get("http://localhost:5000/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.data.success) {
+        this.setState({ user: res.data.data, loading: false });
+      }
+    } catch (error) {
+      console.error("Failed to fetch user profile:", error);
+      this.setState({ loading: false });
+    }
+  };
+
+  handleLogout = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+  };
+
   render() {
+    const { user } = this.state;
+
     return (
       <>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
-          * {
-            font-family: "Poppins", sans-serif;
-          }
-
-          body {
-            padding-top: 85px !important;
-          }
+          * { font-family: "Poppins", sans-serif; }
+          body { padding-top: 85px !important; }
 
           .custom-navbar {
             position: fixed;
@@ -85,18 +114,11 @@ class DashboardNavbar extends Component {
             border: 2px solid #00acc1;
           }
 
-          .dropdown-menu {
-            border-radius: 8px;
-            padding: 8px 0;
-          }
-
-          .logout-btn {
-            color: #d50000 !important;
-            font-weight: 600;
-          }
+          .dropdown-menu { border-radius: 8px; padding: 8px 0; }
+          .logout-btn { color: #d50000 !important; font-weight: 600; }
         `}</style>
 
-        {/* MAIN NAVBAR ONLY */}
+        {/* MAIN NAVBAR */}
         <Navbar expand="lg" light className="custom-navbar px-4">
           <NavbarBrand tag={Link} to="/dashboard">
             <img src="/MedPulse logo.jpg" alt="Logo" />
@@ -104,7 +126,6 @@ class DashboardNavbar extends Component {
           </NavbarBrand>
 
           <NavbarToggler onClick={this.toggle} />
-
           <Collapse isOpen={this.state.isOpen} navbar>
             <Nav className="mx-auto" navbar>
               <NavItem><NavLink tag={Link} to="/dashboard">Dashboard</NavLink></NavItem>
@@ -116,7 +137,11 @@ class DashboardNavbar extends Component {
 
             <UncontrolledDropdown nav inNavbar>
               <DropdownToggle nav>
-                <img src="/default-profile.jpg" className="profile-img" alt="Profile" />
+                <img
+                  src={user?.profilePicture || "/default-profile.jpg"}
+                  className="profile-img"
+                  alt="Profile"
+                />
               </DropdownToggle>
 
               <DropdownMenu end>
@@ -125,7 +150,7 @@ class DashboardNavbar extends Component {
                 <DropdownItem tag={Link} to="/dashboard/settings">Settings</DropdownItem>
 
                 <DropdownItem divider />
-                <DropdownItem tag={Link} to="/login" className="logout-btn">Logout</DropdownItem>
+                <DropdownItem className="logout-btn" onClick={this.handleLogout}>Logout</DropdownItem>
               </DropdownMenu>
             </UncontrolledDropdown>
           </Collapse>
