@@ -173,11 +173,15 @@ class DashboardNavbar extends Component {
           <NavbarToggler onClick={this.toggle} />
           <Collapse isOpen={this.state.isOpen} navbar>
             <Nav className="mx-auto" navbar>
-              <NavItem><NavLink tag={Link} to="/dashboard">Dashboard</NavLink></NavItem>
+              <NavItem><NavLink tag={Link} to="/dashboard">Home </NavLink></NavItem>
               <NavItem><NavLink tag={Link} to="/dashboard/chatbot">Chatbot</NavLink></NavItem>
               <NavItem><NavLink tag={Link} to="/dashboard/blog">Expert Blog</NavLink></NavItem>
               <NavItem><NavLink tag={Link} to="/dashboard/vaccinations">Vaccinations</NavLink></NavItem>
               <NavItem><NavLink tag={Link} to="/dashboard/health-queires">Health Queries</NavLink></NavItem>
+               <NavItem><NavLink tag={Link} to="/dashboard/outbreak">Health Alerts</NavLink></NavItem>
+               <NavItem><NavLink tag={Link} to="/dashboard/Dashboard">Dashboard</NavLink></NavItem>
+               <NavItem><NavLink tag={Link} to="/dashboard/Dailycheak">Daily Cheak</NavLink></NavItem>
+               <NavItem><NavLink tag={Link} to="/dashboard/AllOutbreak">All Outbreak</NavLink></NavItem>
             </Nav>
 
             {/* PROFILE DROPDOWN */}

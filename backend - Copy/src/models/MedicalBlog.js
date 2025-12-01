@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const medicalBlogSchema = new mongoose.Schema(
   {
@@ -35,4 +35,4 @@ const medicalBlogSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("MedicalBlog", medicalBlogSchema);
+export default mongoose.model("MedicalBlog", medicalBlogSchema);

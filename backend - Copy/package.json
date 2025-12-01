@@ -1,8 +1,8 @@
 {
-  "name": "medical-auth-backend",
+  "name": "medical-app-backend",
   "version": "1.0.0",
-  "description": "Medical application authentication system",
   "main": "src/server.js",
+  "type": "module",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js"
@@ -20,8 +20,10 @@
     "mongodb": "^7.0.0",
     "mongoose": "^7.8.7",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.10",
+    "nodemailer": "^7.0.11",
+    "puppeteer": "^24.31.0",
     "redis": "^4.7.1",
+    "twilio": "^5.10.6",
     "validator": "^13.15.23"
   },
   "devDependencies": {

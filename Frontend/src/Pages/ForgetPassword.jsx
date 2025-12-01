@@ -9,7 +9,12 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [form, setForm] = useState({ email: "", otp: "", newPassword: "" });
+  const [form, setForm] = useState({
+    email: "",
+    otp: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -18,41 +23,52 @@ const ForgotPassword = () => {
     setSuccess("");
   };
 
+  // Step 1: Send OTP to email
   const sendOTP = async () => {
     if (!form.email.trim()) return setError("Please enter your email");
     setLoading(true); setError(""); setSuccess("");
     try {
-      const res = await axios.post("http://localhost:5000/auth/forgot-password", { email: form.email });
+      const res = await axios.post("http://localhost:8080/auth/forgot-password", { email: form.email });
       if (res.data.success) {
         setSuccess("OTP sent to your email.");
         setStep(2);
       } else setError(res.data.message);
     } catch (err) {
-      setError("Failed to send OTP");
+      setError(err.response?.data?.message || "Failed to send OTP");
     } finally { setLoading(false); }
   };
 
+  // Step 2: Verify OTP (simply go to next step)
   const verifyOTP = async () => {
     if (!form.otp.trim()) return setError("Please enter OTP");
     setStep(3);
   };
 
+  // Step 3: Reset password
   const resetPassword = async () => {
-    if (!form.newPassword.trim()) return setError("Please enter new password");
-    setLoading(true); setError(""); setSuccess("");
+    if (!form.newPassword.trim() || !form.confirmPassword.trim())
+      return setError("Please enter and confirm your password");
+    if (form.newPassword !== form.confirmPassword)
+      return setError("Passwords do not match");
+
+    setLoading(true);
+    setError(""); setSuccess("");
+
     try {
-      const res = await axios.post("http://localhost:5000/auth/reset-password", {
+      const res = await axios.post("http://localhost:8080/auth/reset-password", {
         email: form.email,
         otp: form.otp,
         newPassword: form.newPassword,
+        confirmPassword: form.confirmPassword,
       });
+
       if (res.data.success) {
-        setSuccess("Password reset successfully! You can now login.");
+        setSuccess(res.data.message || "Password reset successfully! You can now login.");
         setStep(1);
-        setForm({ email: "", otp: "", newPassword: "" });
+        setForm({ email: "", otp: "", newPassword: "", confirmPassword: "" });
       } else setError(res.data.message);
     } catch (err) {
-      setError("Password reset failed");
+      setError(err.response?.data?.message || "Password reset failed");
     } finally { setLoading(false); }
   };
 
@@ -61,11 +77,11 @@ const ForgotPassword = () => {
       <Navbar />
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="flex flex-col md:flex-row max-w-4xl w-full rounded-xl shadow-lg overflow-hidden bg-white">
-          
-          {/* Left Image Panel */}
+
+          {/* Left Panel */}
           <div className="md:w-1/2 flex flex-col items-center justify-center bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white p-10">
             <img
-              src="/MedPulse logo.jpg" // replace with your image path
+              src="/MedPulse logo.jpg"
               alt="Forgot Password"
               className="w-48 h-48 mb-6 rounded-full border-4 border-white object-cover"
             />
@@ -85,6 +101,8 @@ const ForgotPassword = () => {
             {success && <div className="mb-4 text-green-600 text-center font-medium">{success}</div>}
 
             <form className="space-y-4">
+
+              {/* Step 1: Enter Email */}
               {step === 1 && (
                 <div>
                   <input
@@ -106,6 +124,7 @@ const ForgotPassword = () => {
                 </div>
               )}
 
+              {/* Step 2: Enter OTP */}
               {step === 2 && (
                 <div>
                   <input
@@ -127,8 +146,9 @@ const ForgotPassword = () => {
                 </div>
               )}
 
+              {/* Step 3: Enter New Password & Confirm Password */}
               {step === 3 && (
-                <div>
+                <div className="space-y-4">
                   <input
                     type="password"
                     name="newPassword"
@@ -137,11 +157,19 @@ const ForgotPassword = () => {
                     onChange={handleChange}
                     className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00acc1]"
                   />
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    placeholder="Confirm new password"
+                    value={form.confirmPassword}
+                    onChange={handleChange}
+                    className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00acc1]"
+                  />
                   <button
                     type="button"
                     onClick={resetPassword}
                     disabled={loading}
-                    className="w-full mt-4 py-3 bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white font-semibold rounded-lg hover:shadow-lg transition-all"
+                    className="w-full py-3 bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white font-semibold rounded-lg hover:shadow-lg transition-all"
                   >
                     {loading ? "Resetting..." : "Reset Password"}
                   </button>

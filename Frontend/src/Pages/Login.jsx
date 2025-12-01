@@ -18,7 +18,7 @@ const Login = () => {
       const user = JSON.parse(localStorage.getItem("user"));
       if (user?.role) redirectByRole(user.role);
     }
-  }, [navigate]);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,7 +40,6 @@ const Login = () => {
       case "admin":
         navigate("/admin-dashboard");
         break;
-      
       case "patient":
         navigate("/dashboard");
         break;
@@ -52,34 +51,33 @@ const Login = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    handleLogin();
-  };
-
-  const handleLogin = async () => {
     if (!validateForm()) return;
+
     setLoading(true);
     setError("");
     setSuccess("");
 
     try {
-      const res = await axios.post("http://localhost:5000/auth/login", form);
+      const res = await axios.post("http://localhost:8080/auth/login", form, {
+        withCredentials: true, // important for cookies (refresh token)
+      });
 
       if (res.data.success) {
-        const { accessToken, user } = res.data.data;
+        const { accessToken, user } = res.data;
 
         localStorage.setItem("token", accessToken);
         localStorage.setItem("user", JSON.stringify(user));
 
         setSuccess("Login successful! Redirecting...");
-
         setTimeout(() => redirectByRole(user.role), 1000);
       }
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Invalid email or password");
-      if (err.response?.status === 401)
+      if (err.response?.status === 401) {
         setForm((prev) => ({ ...prev, password: "" }));
+      }
     } finally {
       setLoading(false);
     }

@@ -22,6 +22,12 @@ import HowItWorks from "./Components/HowItWorks";
 import ProblemStatement from "./Components/ProblemStatement";
 import PurposeOfPlatform from "./Components/PurposeOfPlatform";
 import ImpactStats from "./Components/ImpactStats";
+import CheckOutbreak from "./Components/CheckOutbreak";
+ import DailyCheck from "./Components/DailyCheck";
+ import AllOutbreak from "./Components/AllOutbreaks";
+ import Dashboard from "./Components/Dashboard";
+ 
+
 
 function App() {
   return (
@@ -52,6 +58,11 @@ function App() {
           <Route path="vaccinations" element={<Vaccination />} />
           <Route path="profile" element={<Profile />} />
             <Route path="blog" element={<MedicalBlogList />} />
+            <Route path="outbreak" element={<CheckOutbreak />} />
+            <Route path="Dailycheak" element={<DailyCheck />} />
+            <Route path="AllOutbreak" element={<AllOutbreak />} />
+            <Route path="Dashboard" element={<Dashboard />} />
+         
         </Route>
 
         {/* ---------------- Medical Dashboard ---------------- */}

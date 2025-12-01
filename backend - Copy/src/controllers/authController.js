@@ -1,351 +1,257 @@
-require('dotenv').config();
-const User = require('../models/User');
-const TokenManager = require('../utils/token');
-const EmailService = require('../utils/emailService');
-const { v4: uuidv4 } = require("uuid");
-const fs = require('fs');
-const path = require('path');
+import User from "../models/User.js";
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 
-// Helper: get full URL for profile picture
-const getProfilePictureURL = (filePath) => {
-  if (!filePath) return null;
-  const BASE_URL = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
-  return `${BASE_URL}/${filePath.replace(/\\/g, '/')}`;
+dotenv.config();
+
+// ---------------- Nodemailer transporter ----------------
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: process.env.SMTP_PORT || 587,
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+// In-memory refresh token store (replace with DB/Redis for production)
+const refreshTokensStore = new Map();
+
+// ---------------- Helper: send OTP email ----------------
+const sendOTPEmail = async (email, otp, name) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.log("📨 DEV MODE OTP EMAIL", `To: ${email} | OTP: ${otp}`);
+    return { success: true, message: "OTP logged to console (DEV MODE)" };
+  }
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM || "Medical App <noreply@medicalapp.com>",
+    to: email,
+    subject: "Verify Your Email - Medical App",
+    html: `<div style="font-family: Arial, sans-serif; line-height: 1.5;">
+      <h2>Hello ${name},</h2>
+      <p>Use the following OTP to verify your email:</p>
+      <h1 style="color: #007bff;">${otp}</h1>
+      <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
+    </div>`,
+  };
+
+  await transporter.sendMail(mailOptions);
+  return { success: true, message: "OTP sent via email" };
 };
 
-// ----------------- SIGNUP -----------------
-exports.signup = async (req, res) => {
+// ---------------- Helper: send Welcome email ----------------
+const sendWelcomeEmail = async (email, name) => {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    console.log("📨 DEV MODE WELCOME EMAIL", `To: ${email} | Welcome ${name}`);
+    return { success: true };
+  }
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM || "Medical App <noreply@medicalapp.com>",
+    to: email,
+    subject: "Welcome to Medical App!",
+    html: `<div style="font-family: Arial, sans-serif; line-height: 1.5;">
+      <h2>Welcome ${name}!</h2>
+      <p>Your email is verified and your account is ready to use.</p>
+    </div>`,
+  };
+
+  await transporter.sendMail(mailOptions);
+  return { success: true };
+};
+
+// ---------------- STEP 1: Start Signup ----------------
+export const startSignup = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: "Name, email, and password are required" });
+    const { name, email, phoneNumber } = req.body;
+
+    if (!name || !email || !phoneNumber)
+      return res.status(400).json({ success: false, message: "All fields required" });
+
+    let user = await User.findOne({ email });
+
+    if (user && user.emailVerified)
+      return res.status(400).json({ success: false, message: "User already registered" });
+
+    if (!user) {
+      user = new User({
+        uniqueUserId: "USR" + Date.now(),
+        name,
+        email,
+        phoneNumber,
+        passwordHash: "temp",
+      });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(409).json({ success: false, message: "User already exists with this email" });
-
-    const passwordHash = await User.hashPassword(password);
-    const namePrefix = name.split(" ")[0].toLowerCase();
-    const shortUUID = uuidv4().split("-")[0];
-    const uniqueUserId = `UID-${namePrefix}-${shortUUID}`;
-
-    const user = new User({
-      name,
-      email,
-      passwordHash,
-      uniqueUserId,
-      role: role || "patient",
-      emailVerified: false
-    });
-
+    const otp = user.generateOTP();
     await user.save();
 
-    const otpCode = user.generateOTP();
-    await user.save();
+    await sendOTPEmail(email, otp, name);
 
-    let emailResult = { success: false };
-    try { emailResult = await EmailService.sendOTPEmail(email, otpCode, name); } 
-    catch (err) { console.error("EmailService.sendOTPEmail error:", err); }
-
-    return res.status(201).json({
-      success: true,
-      message: "User created successfully. OTP sent for email verification.",
-      data: {
-        userId: uniqueUserId,
-        email: user.email,
-        requiresVerification: true,
-        emailSent: emailResult.success
-      }
-    });
-
+    res.json({ success: true, message: "OTP sent successfully", email });
   } catch (error) {
-    console.error("Signup error:", error);
-    if (error.name === "ValidationError") {
-      const errors = Object.values(error.errors).map(e => e.message);
-      return res.status(400).json({ success: false, message: errors.join(", ") });
-    }
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(409).json({ success: false, message: `User already exists with this ${field}` });
-    }
-    return res.status(500).json({ success: false, message: "Internal server error during signup" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ----------------- LOGIN -----------------
-exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ success: false, message: "Email and password are required" });
-
-    const user = await User.findOne({ email });
-    if (!user || !(await user.checkPassword(password))) return res.status(401).json({ success: false, message: "Invalid email or password" });
-
-    const accessToken = TokenManager.generateAccessToken({
-      userId: user._id,
-      role: user.role,
-      emailVerified: user.emailVerified
-    });
-
-    const { token: refreshToken, jti } = TokenManager.generateRefreshToken({ userId: user._id, role: user.role });
-    await TokenManager.storeRefreshToken(user._id, jti);
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
-
-    const userData = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      picture: getProfilePictureURL(user.profilePicture),
-      emailVerified: user.emailVerified
-    };
-
-    return res.json({
-      success: true,
-      message: "Login successful",
-      data: {
-        accessToken,
-        user: userData
-      }
-    });
-
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ success: false, message: "Internal server error during login" });
-  }
-};
-
-// ----------------- VERIFY OTP -----------------
-exports.verifyOTP = async (req, res) => {
+// ---------------- STEP 2: Verify OTP ----------------
+export const verifySignupOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    if (!email || !otp) return res.status(400).json({ success: false, message: "Email and OTP are required" });
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    await user.verifyOTP(otp);
-    user.emailVerified = true;
+    user.verifyOTP(otp);
     await user.save();
 
-    try { await EmailService.sendWelcomeEmail(user.email, user.name); } 
-    catch (err) { console.error('Failed to send welcome email:', err); }
+    res.json({ success: true, message: "OTP verified. You can set your password now." });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
 
-    const accessToken = TokenManager.generateAccessToken({ userId: user._id, role: user.role, emailVerified: true });
-    const { token: refreshToken, jti } = TokenManager.generateRefreshToken({ userId: user._id, role: user.role });
-    await TokenManager.storeRefreshToken(user._id, jti);
+// ---------------- STEP 3: Complete Signup ----------------
+export const completeSignup = async (req, res) => {
+  try {
+    const { email, password, confirmPassword, role } = req.body;
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+    if (!password || !confirmPassword)
+      return res.status(400).json({ success: false, message: "Password required" });
 
-    const userData = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      mobile: user.mobile,
-      role: user.role,
-      picture: getProfilePictureURL(user.profilePicture),
-      emailVerified: user.emailVerified
-    };
+    if (password !== confirmPassword)
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    if (!user.emailVerified)
+      return res.status(400).json({ success: false, message: "Email not verified yet" });
+
+    const hash = await User.hashPassword(password);
+    user.passwordHash = hash;
+    user.role = role || "patient";
+
+    await user.save();
+    await sendWelcomeEmail(email, user.name);
 
     res.json({
       success: true,
-      message: "Email verified successfully",
-      data: {
-        accessToken,
-        user: userData
-      }
+      message: "Signup completed successfully",
+      user: { name: user.name, email: user.email, role: user.role },
     });
-
   } catch (error) {
-    console.error('OTP verification error:', error);
-    res.status(400).json({ success: false, message: error.message || "OTP verification failed" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ----------------- RESEND OTP -----------------
-exports.resendOTP = async (req, res) => {
+// ---------------- LOGIN ----------------
+export const loginUser = async (req, res) => {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
+    const { email, password } = req.body;
+
+    if (!email || !password)
+      return res.status(400).json({ success: false, message: "Email and password required" });
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
-    if (user.emailVerified) return res.status(400).json({ success: false, message: "Email already verified" });
-    if (!user.canResendOTP()) return res.status(429).json({ success: false, message: "OTP resend blocked. Try later." });
+    if (!user.emailVerified) return res.status(400).json({ success: false, message: "Email not verified" });
 
-    const otpCode = user.generateOTP();
-    await user.save();
+    const isMatch = await user.checkPassword(password);
+    if (!isMatch) return res.status(401).json({ success: false, message: "Invalid credentials" });
 
-    let emailResult = { success: false };
-    try { emailResult = await EmailService.sendOTPEmail(email, otpCode, user.name); } 
-    catch (err) { console.error('Error sending OTP:', err); }
+    const accessToken = jwt.sign({ id: user._id, role: user.role }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+    const refreshToken = jwt.sign({ id: user._id, role: user.role }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+    refreshTokensStore.set(refreshToken, user._id.toString());
 
-    res.json({ success: true, message: "OTP resent successfully", data: { emailSent: !!emailResult.success } });
-
-  } catch (error) {
-    console.error("Resend OTP error:", error);
-    res.status(500).json({ success: false, message: "Failed to resend OTP" });
-  }
-};
-
-// ----------------- REFRESH TOKEN -----------------
-exports.refreshToken = async (req, res) => {
-  try {
-    const refreshToken = req.cookies?.refreshToken;
-    if (!refreshToken) return res.status(401).json({ success: false, message: "Refresh token required" });
-
-    const decoded = await TokenManager.verifyRefreshToken(refreshToken);
-    await TokenManager.revokeRefreshToken(decoded.jti);
-
-    const accessToken = TokenManager.generateAccessToken({ userId: decoded.userId, role: decoded.role });
-    const { token: newRefreshToken, jti } = TokenManager.generateRefreshToken({ userId: decoded.userId, role: decoded.role });
-    await TokenManager.storeRefreshToken(decoded.userId, jti);
-
-    res.cookie("refreshToken", newRefreshToken, {
+    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({ success: true, message: "Token refreshed", data: { accessToken } });
-
+    res.json({ success: true, message: "Login successful", accessToken, user: { name: user.name, email: user.email, role: user.role } });
   } catch (error) {
-    console.error("Refresh token error:", error);
-    res.clearCookie("refreshToken");
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ---------------- Refresh Token ----------------
+export const refreshToken = async (req, res) => {
+  try {
+    const token = req.cookies?.refreshToken;
+    if (!token) return res.status(401).json({ success: false, message: "Refresh token required" });
+
+    if (!refreshTokensStore.has(token)) return res.status(403).json({ success: false, message: "Invalid refresh token" });
+
+    const payload = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    const newAccessToken = jwt.sign({ id: payload.id, role: payload.role }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "15m" });
+
+    res.json({ success: true, accessToken: newAccessToken });
+  } catch (error) {
     res.status(403).json({ success: false, message: "Invalid or expired refresh token" });
   }
 };
 
-// ----------------- LOGOUT -----------------
-exports.logout = async (req, res) => {
+// ---------------- Logout ----------------
+export const logout = async (req, res) => {
   try {
-    const refreshToken = req.cookies?.refreshToken;
-    if (refreshToken) {
-      try {
-        const decoded = await TokenManager.verifyRefreshToken(refreshToken);
-        await TokenManager.revokeRefreshToken(decoded.jti);
-      } catch { /* ignore */ }
-    }
+    const token = req.cookies?.refreshToken;
+    if (token) refreshTokensStore.delete(token);
+
     res.clearCookie("refreshToken");
     res.json({ success: true, message: "Logout successful" });
   } catch (error) {
-    console.error("Logout error:", error);
-    res.status(500).json({ success: false, message: "Internal server error during logout" });
+    res.status(500).json({ success: false, message: "Server error during logout" });
   }
 };
 
-// ----------------- FORGOT PASSWORD -----------------
-exports.forgotPassword = async (req, res) => {
+// ---------------- Forgot Password ----------------
+export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
-
-    const user = await User.findOne({ email });
-    if (user) {
-      const otp = user.generateOTP();
-      await user.save();
-      try { await EmailService.sendPasswordResetOTP(email, otp, user.name); } 
-      catch (err) { console.error("Failed to send password reset OTP:", err); }
-    }
-
-    res.json({ success: true, message: "If the account exists, OTP has been sent to the email" });
-
-  } catch (error) {
-    console.error("Forgot password error:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
-};
-
-// ----------------- RESET PASSWORD -----------------
-exports.resetPassword = async (req, res) => {
-  try {
-    const { email, otp, newPassword } = req.body;
-    if (!email || !otp || !newPassword) return res.status(400).json({ success: false, message: "Email, OTP and new password are required" });
+    if (!email) return res.status(400).json({ success: false, message: "Email required" });
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    try { await user.verifyOTP(otp); } 
-    catch { return res.status(400).json({ success: false, message: "Invalid or expired OTP" }); }
+    const otp = user.generateOTP();
+    await user.save();
 
-    user.passwordHash = await User.hashPassword(newPassword);
+    await sendOTPEmail(email, otp, user.name);
+
+    res.json({ success: true, message: "Password reset OTP sent to email" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ---------------- Reset Password ----------------
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword, confirmPassword } = req.body;
+
+    if (!email || !otp || !newPassword || !confirmPassword)
+      return res.status(400).json({ success: false, message: "All fields are required" });
+
+    if (newPassword !== confirmPassword)
+      return res.status(400).json({ success: false, message: "Passwords do not match" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    user.verifyOTP(otp);
+
+    const hash = await User.hashPassword(newPassword);
+    user.passwordHash = hash;
     await user.save();
 
     res.json({ success: true, message: "Password reset successfully" });
-
   } catch (error) {
-    console.error("Reset password error:", error);
-    res.status(500).json({ success: false, message: "Server error during password reset" });
-  }
-};
-
-// ----------------- GET CURRENT USER -----------------
-exports.getCurrentUser = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const user = await User.findById(userId).select("-passwordHash -__v");
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
-
-    const userData = {
-      ...user.toObject(),
-      profilePicture: getProfilePictureURL(user.profilePicture)
-    };
-
-    res.json({ success: true, data: userData });
-  } catch (error) {
-    console.error("Get current user error:", error);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-// ----------------- UPDATE PROFILE -----------------
-exports.updateProfile = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { name, phone, address, bloodGroup, allergies, chronicDiseases } = req.body;
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ success: false, message: "User not found" });
-
-    // Update fields
-    user.name = name ?? user.name;
-    user.phone = phone ?? user.phone;
-    user.address = address ?? user.address;
-    user.bloodGroup = bloodGroup ?? user.bloodGroup;
-    user.allergies = allergies ?? user.allergies;
-    user.chronicDiseases = chronicDiseases ?? user.chronicDiseases;
-
-    // Handle profile picture upload
-    if (req.file) {
-      // Delete old profile picture if exists
-      if (user.profilePicture && fs.existsSync(user.profilePicture)) {
-        fs.unlinkSync(user.profilePicture);
-      }
-      user.profilePicture = req.file.path; // save new path
-    }
-
-    await user.save();
-
-    const userData = {
-      ...user.toObject(),
-      profilePicture: getProfilePictureURL(user.profilePicture)
-    };
-
-    res.json({ success: true, message: "Profile updated successfully", data: userData });
-  } catch (error) {
-    console.error("Update profile error:", error);
-    res.status(500).json({ success: false, message: "Server error while updating profile" });
+    res.status(400).json({ success: false, message: error.message });
   }
 };

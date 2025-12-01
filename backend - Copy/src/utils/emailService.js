@@ -1,229 +1,155 @@
-﻿const nodemailer = require('nodemailer');
+﻿import nodemailer from "nodemailer";
 
 class EmailService {
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
       port: process.env.SMTP_PORT || 587,
       secure: false,
       auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
+        pass: process.env.SMTP_PASS,
+      },
     });
   }
 
-  // ---------------------- EMAIL OTP (ALREADY EXISTING) ----------------------
-  async sendOTPEmail(email, otpCode, userName) {
+  // ===========================
+  //   INTERNAL HELPER
+  // ===========================
+  async sendMail({ to, subject, html, otp }) {
     const mailOptions = {
-      from: process.env.SMTP_FROM || 'Medical App <noreply@medicalapp.com>',
-      to: email,
-      subject: 'Email Verification OTP - Medical App',
-      html: this.generateOTPEmailTemplate(otpCode, userName)
+      from: process.env.SMTP_FROM || "Medical App <noreply@medicalapp.com>",
+      to,
+      subject,
+      html,
     };
 
     try {
-      if (process.env.NODE_ENV === 'development' || !process.env.SMTP_USER) {
-        console.log('📧 OTP EMAIL (DEV MODE)');
-        console.log(`To: ${email}`);
-        console.log(`OTP: ${otpCode}`);
-        return { success: true, message: 'OTP logged to console' };
-      }
-
-      await this.transporter.sendMail(mailOptions);
-      return { success: true, message: 'OTP sent successfully' };
-
-    } catch (error) {
-      console.error('Email sending error:', error);
-      console.log(`📧 OTP for ${email}: ${otpCode}`);
-      return { success: false, message: 'Failed to send OTP email, OTP logged to console' };
-    }
-  }
-
-  generateOTPEmailTemplate(otpCode, userName) {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #007bff; color: white; padding: 20px; text-align: center; }
-          .content { background: #f9f9f9; padding: 30px; }
-          .otp-code { 
-            font-size: 32px; 
-            font-weight: bold; 
-            text-align: center; 
-            color: #007bff;
-            margin: 20px 0;
-            letter-spacing: 5px;
-          }
-          .warning { 
-            background: #fff3cd; 
-            border: 1px solid #ffeaa7; 
-            padding: 15px; 
-            border-radius: 5px;
-            margin: 20px 0;
-          }
-          .footer { 
-            background: #333; 
-            color: white; 
-            padding: 20px; 
-            text-align: center;
-            font-size: 12px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Medical Authentication App</h1>
-          </div>
-          <div class="content">
-            <h2>Email Verification</h2>
-            <p>Hello ${userName},</p>
-            <p>Please use the following OTP:</p>
-            <div class="otp-code">${otpCode}</div>
-            <div class="warning">
-              <strong>Important:</strong>
-              <ul>
-                <li>OTP valid for 10 minutes</li>
-                <li>Do not share with anyone</li>
-              </ul>
-            </div>
-          </div>
-          <div class="footer">
-            <p>&copy; 2024 Medical App</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-  }
-
-  // ---------------------- ⭐ FORGOT PASSWORD OTP (NEW) ----------------------
-
-  async sendPasswordResetOTP(email, otp, userName) {
-    const mailOptions = {
-      from: process.env.SMTP_FROM || 'Medical App <noreply@medicalapp.com>',
-      to: email,
-      subject: 'Password Reset OTP - Medical App',
-      html: this.generatePasswordResetTemplate(otp, userName)
-    };
-
-    try {
-      // Development mode - log OTP
-      if (process.env.NODE_ENV === 'development' || !process.env.SMTP_USER) {
-        console.log('📧 PASSWORD RESET OTP (DEV MODE)');
-        console.log(`To: ${email}`);
-        console.log(`OTP: ${otp}`);
-        return { success: true, message: 'Reset OTP logged to console' };
-      }
-
-      // Production email sending
-      await this.transporter.sendMail(mailOptions);
-      return { success: true, message: 'Password reset OTP sent' };
-
-    } catch (error) {
-      console.error('Reset email error:', error);
-      console.log(`📧 RESET OTP for ${email}: ${otp}`);
-      return { success: false, message: 'Failed to send password reset email, OTP logged to console' };
-    }
-  }
-
-  generatePasswordResetTemplate(otp, userName) {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #dc3545; color: white; padding: 20px; text-align: center; }
-          .content { background: #f9f9f9; padding: 30px; }
-          .otp-code { 
-            font-size: 32px; font-weight: bold; text-align: center;
-            color: #dc3545; margin: 20px 0; letter-spacing: 5px;
-          }
-          .footer { background: #333; color: white; padding: 20px; text-align: center; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Password Reset Request</h1>
-          </div>
-          <div class="content">
-            <h2>Hello ${userName},</h2>
-            <p>You requested to reset your password. Use the OTP below:</p>
-
-            <div class="otp-code">${otp}</div>
-
-            <p>This OTP is valid for 10 minutes.</p>
-            <p>If you did not request a password reset, ignore this message.</p>
-          </div>
-          <div class="footer">
-            <p>&copy; 2024 Medical App</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-  }
-
-  // ---------------------- EXISTING WELCOME EMAIL ----------------------
-
-  async sendWelcomeEmail(email, userName) {
-    const mailOptions = {
-      from: process.env.SMTP_FROM || 'Medical App <noreply@medicalapp.com>',
-      to: email,
-      subject: 'Welcome to Medical App - Email Verified',
-      html: this.generateWelcomeEmailTemplate(userName)
-    };
-
-    try {
-      if (process.env.NODE_ENV === 'development' || !process.env.SMTP_USER) {
-        console.log('📧 WELCOME EMAIL (DEV MODE)');
-        console.log(`To: ${email}`);
-        console.log(`User: ${userName}`);
-        return { success: true };
+      // Development mode → No real email
+      if (process.env.NODE_ENV === "development" || !process.env.SMTP_USER) {
+        console.log("📨 DEV MODE EMAIL");
+        console.log(`To: ${to}`);
+        if (otp) console.log(`OTP: ${otp}`);
+        return { success: true, message: "Email logged to console (DEV MODE)" };
       }
 
       await this.transporter.sendMail(mailOptions);
       return { success: true };
-
     } catch (error) {
-      console.error('Welcome email error:', error);
-      return { success: false };
+      console.error("❌ Email sending error:", error);
+
+      // Always show OTP in console so user can proceed
+      if (otp) console.log(`📧 OTP for ${to}: ${otp}`);
+
+      return { success: false, message: "Email sending failed (OTP logged to console)" };
     }
   }
 
-  generateWelcomeEmailTemplate(userName) {
+  // ===========================
+  //   SEND SIGNUP OTP EMAIL
+  // ===========================
+  async sendSignupOTP(email, otp, userName) {
+    return this.sendMail({
+      to: email,
+      subject: "Verify Your Email - Medical App",
+      html: this.signupOTPTemplate(otp, userName),
+      otp,
+    });
+  }
+
+  signupOTPTemplate(otp, userName) {
     return `
-      <!DOCTYPE html>
       <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #28a745; color: white; padding: 20px; text-align: center; }
-          .content { background: #f9f9f9; padding: 30px; }
-          .footer { background: #333; color: white; padding: 20px; text-align: center; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎉 Welcome to Medical App!</h1>
-          </div>
-          <div class="content">
-            <h2>Email Verified Successfully</h2>
-            <p>Hello <strong>${userName}</strong>,</p>
-            <p>Your email is now verified. You can now use all features.</p>
-          </div>
-          <div class="footer">
-            <p>&copy; 2024 Medical App</p>
-          </div>
+      <body style="font-family: Arial; color: #333;">
+        <div style="max-width:600px; margin:auto; padding:20px;">
+          <h2 style="text-align:center; background:#007bff; padding:15px; color:white;">
+            Medical App - Email Verification
+          </h2>
+          <p>Hello <b>${userName}</b>,</p>
+          <p>Use the OTP below to verify your email:</p>
+
+          <h1 style="text-align:center; letter-spacing:8px; color:#007bff;">
+            ${otp}
+          </h1>
+
+          <p>This OTP is valid for 10 minutes. Do not share it.</p>
+
+          <p style="font-size:12px; color:#777; text-align:center; margin-top:30px;">
+            © 2025 Medical App
+          </p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  // ===========================
+  //   SEND PASSWORD RESET OTP
+  // ===========================
+  async sendPasswordResetOTP(email, otp, userName) {
+    return this.sendMail({
+      to: email,
+      subject: "Password Reset OTP - Medical App",
+      html: this.resetOTPTemplate(otp, userName),
+      otp,
+    });
+  }
+
+  resetOTPTemplate(otp, userName) {
+    return `
+      <html>
+      <body style="font-family: Arial; color:#333;">
+        <div style="max-width:600px; margin:auto; padding:20px;">
+          <h2 style="text-align:center; background:#dc3545; padding:15px; color:white;">
+            Medical App - Password Reset
+          </h2>
+
+          <p>Hello <b>${userName}</b>,</p>
+          <p>Use the OTP below to reset your password:</p>
+
+          <h1 style="text-align:center; letter-spacing:8px; color:#dc3545;">
+            ${otp}
+          </h1>
+
+          <p>This OTP is valid for 10 minutes.</p>
+          <p>If you didn't request this, ignore this email.</p>
+
+          <p style="font-size:12px; color:#777; text-align:center; margin-top:30px;">
+            © 2025 Medical App
+          </p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  // ===========================
+  //   SEND WELCOME EMAIL
+  // ===========================
+  async sendWelcomeEmail(email, userName) {
+    return this.sendMail({
+      to: email,
+      subject: "Welcome to Medical App 🎉",
+      html: this.welcomeTemplate(userName),
+    });
+  }
+
+  welcomeTemplate(userName) {
+    return `
+      <html>
+      <body style="font-family: Arial; color:#333;">
+        <div style="max-width:600px; margin:auto; padding:20px;">
+          <h2 style="text-align:center; background:#28a745; padding:15px; color:white;">
+            Welcome to Medical App!
+          </h2>
+
+          <p>Hello <b>${userName}</b>,</p>
+          <p>Your email has been successfully verified. 🎉</p>
+          <p>You can now use all features of the Medical App.</p>
+
+          <p style="font-size:12px; color:#777; text-align:center; margin-top:30px;">
+            © 2025 Medical App
+          </p>
         </div>
       </body>
       </html>
@@ -231,4 +157,5 @@ class EmailService {
   }
 }
 
-module.exports = new EmailService();
+const emailService = new EmailService();
+export default emailService;

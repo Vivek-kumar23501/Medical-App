@@ -1,76 +1,113 @@
-require('dotenv').config();
-const express = require('express');
-const helmet = require('helmet');
-const cors = require('cors');
-const path = require('path');
-const connectDB = require('./config/database');
+// src/server.js
+import dotenv from "dotenv";
+dotenv.config();
 
-const authRoutes = require('./routes/authRoutes');
-const patientQueryRoutes = require('./routes/patientQueryRoutes');
-const medicalBlogRoutes = require('./routes/MedicalBlogRoutes');
+import express from "express";
+import helmet from "helmet";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// Initialize Express app
+import connectDB from "./config/database.js";
+import authRoutes from "./routes/authRoutes.js";
+import patientQueryRoutes from "./routes/patientQueryRoutes.js";
+import medicalBlogRoutes from "./routes/MedicalBlogRoutes.js";
+import outbreakRoutes from "./routes/outbreakRoutes.js";
+import scraper from "./scrapers/maharashtraScraper.js";
+
+// -------------------- Fix __dirname in ES Modules --------------------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// -------------------- Initialize Express --------------------
 const app = express();
 
-// Connect to MongoDB
+// -------------------- Connect to MongoDB --------------------
 connectDB();
 
-// Security Middleware
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
+// -------------------- Security Middleware --------------------
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
 
-// CORS Configuration
-app.use(cors({
-  origin: process.env.CORS_ORIGIN,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// -------------------- CORS Configuration --------------------
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "*",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-// Body Parsing Middleware
-app.use(express.json({ limit: '10mb' }));
+// -------------------- Body Parsing Middleware --------------------
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health Check Route
-app.get('/health', (req, res) => {
+// -------------------- Serve Static Files --------------------
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// -------------------- Health Check --------------------
+app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Medical Auth Server is running',
-    timestamp: new Date().toISOString()
+    message: "Unified Medical & Outbreak API Server is running",
+    timestamp: new Date().toISOString(),
   });
 });
 
-// API Routes
-app.use('/auth', authRoutes);
-app.use('/api/patient-query', patientQueryRoutes);
-app.use('/api/medical', medicalBlogRoutes);
+// -------------------- Medical App Routes --------------------
+app.use("/auth", authRoutes);
+app.use("/api/patient-query", patientQueryRoutes);
+app.use("/api/medical", medicalBlogRoutes);
 
-app.use('/uploads', express.static(path.join('uploads')));
+// -------------------- Outbreak Alert Routes --------------------
+app.use("/api/outbreaks", outbreakRoutes);
 
-// 404 Handler
-app.use('*', (req, res) => {
+// Run scraper manually
+app.get("/run-scraper", async (req, res) => {
+  try {
+    const result = await scraper();
+    res.json({ status: "done", records: result.length });
+  } catch (err) {
+    console.error("Scraper error:", err);
+    res.status(500).json({ status: "error", message: err.message });
+  }
+});
+
+// Debug date route
+app.get("/debug-date", (req, res) => {
+  res.json({
+    systemDate: new Date(),
+    iso: new Date().toISOString(),
+  });
+});
+
+// -------------------- 404 Handler --------------------
+app.use("*", (req, res) => {
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: "Route not found",
   });
 });
 
-// Global Error Handler
-app.use((error, req, res, next) => {
-  console.error('Global error handler:', error.message);
+// -------------------- Global Error Handler --------------------
+app.use((err, req, res, next) => {
+  console.error("Global error handler:", err.stack || err.message);
   res.status(500).json({
     success: false,
-    message: 'Internal server error'
+    message: "Internal server error",
   });
 });
 
-// Start Server
+// -------------------- Start Server --------------------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Medical Auth Server running on port ${PORT}`);
+  console.log(`🚀 Unified Server running on port ${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV}`);
   console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN}`);
 });
 
-module.exports = app;
+export default app;
