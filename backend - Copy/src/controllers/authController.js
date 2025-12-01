@@ -255,3 +255,17 @@ export const resetPassword = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+// profile of logged-in user
+
+export const getProfile = async (req, res) => {
+  try {
+    // req.user contains decoded JWT payload (id, role)
+    const user = await User.findById(req.user.id).select("-passwordHash -__v"); 
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    res.json({ success: true, data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

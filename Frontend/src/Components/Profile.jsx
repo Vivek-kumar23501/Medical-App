@@ -3,176 +3,369 @@ import axios from "axios";
 import Navbar from "../Components/Navbar";
 import Footer from "../Components/Footer";
 
-const UserProfile = () => {
+const Profile = () => {
   const [user, setUser] = useState(null);
-  const [editableUser, setEditableUser] = useState({});
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [form, setForm] = useState({});
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return setLoading(false);
-      try {
-        const res = await axios.get("http://localhost:5000/auth/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.data.success) {
-          setUser(res.data.data);
-          setEditableUser(res.data.data);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
-  }, []);
+  const token = localStorage.getItem("token");
 
-  const handleSave = async () => {
-    const token = localStorage.getItem("token");
-    setSaving(true);
+  // Fetch profile data
+  const fetchProfile = async () => {
+    setLoading(true);
     try {
-      const formData = new FormData();
-      formData.append("name", editableUser.name || "");
-      formData.append("phone", editableUser.phone || "");
-      formData.append("address", editableUser.address || "");
-      formData.append("bloodGroup", editableUser.bloodGroup || "");
-      formData.append("allergies", editableUser.allergies || "");
-      formData.append("chronicDiseases", editableUser.chronicDiseases || "");
-      if (editableUser.profileFile)
-        formData.append("profilePicture", editableUser.profileFile);
-
-      const res = await axios.put("http://localhost:5000/auth/me", formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
+      const res = await axios.get("http://localhost:8080/auth/profile", {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (res.data.success) {
         setUser(res.data.data);
-        setEditableUser({ ...res.data.data, profileFile: null });
-        setIsEditing(false);
-        alert("Profile updated!");
+        setForm(res.data.data);
       }
     } catch (err) {
-      console.error(err);
-      alert("Failed to update profile");
+      setError(err.response?.data?.message || "Failed to fetch profile");
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  if (loading)
-    return <p className="text-center mt-10 text-gray-500">Loading...</p>;
-  if (!user)
-    return <p className="text-center mt-10 text-red-500">User not found</p>;
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    setError("");
+    setSuccess("");
+  };
+
+  const handleNestedChange = (e, parentKey) => {
+    const { name, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [parentKey]: { ...prev[parentKey], [name]: checked },
+    }));
+    setError("");
+    setSuccess("");
+  };
+
+  const handleUpdate = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await axios.put("http://localhost:8080/auth/profile", form, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.data.success) {
+        setUser(res.data.data);
+        setForm(res.data.data);
+        setSuccess("Profile updated successfully!");
+        setEditMode(false);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Update failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && !user) return <div className="text-center mt-20">Loading...</div>;
+  if (!user) return <div className="text-center mt-20">No user data found</div>;
 
   return (
     <>
       
-      <div className="max-w-3xl mx-auto mt-12">
-        <div className="bg-gradient-to-r from-teal-400 to-teal-600 rounded-t-xl h-40 relative">
-          <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
-            <img
-              src={
-                editableUser.profileFile
-                  ? URL.createObjectURL(editableUser.profileFile)
-                  : user.profilePicture || "/default.png"
-              }
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-            {isEditing && (
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  setEditableUser({
-                    ...editableUser,
-                    profileFile: e.target.files[0],
-                  })
-                }
-                className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-white rounded-md p-1 cursor-pointer text-sm"
-              />
-            )}
-          </div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 py-10">
+        <div className="bg-white shadow-lg rounded-xl p-10 w-full max-w-4xl">
+          <h2 className="text-2xl font-bold text-teal-900 mb-6 text-center">My Profile</h2>
 
-        <div className="bg-white mt-20 rounded-b-xl shadow-lg p-6 text-center">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-            {editableUser.name || "User Name"}
-          </h2>
-          <p className="text-gray-500 mb-4">{user.email}</p>
+          {error && <div className="mb-4 text-red-600 text-center">{error}</div>}
+          {success && <div className="mb-4 text-green-600 text-center">{success}</div>}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left mt-6">
-            {[
-              ["Name", "name"],
-              ["Phone", "phone"],
-              ["Address", "address"],
-              ["Blood Group", "bloodGroup"],
-              ["Allergies", "allergies"],
-              ["Chronic Diseases", "chronicDiseases"],
-            ].map(([label, field]) => (
-              <div key={field}>
-                <p className="text-gray-700 font-medium">{label}:</p>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editableUser[field] || ""}
-                    onChange={(e) =>
-                      setEditableUser({
-                        ...editableUser,
-                        [field]: e.target.value,
-                      })
-                    }
-                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                ) : (
-                  <p className="mt-1 text-gray-600">{user[field] || "-"}</p>
-                )}
-              </div>
-            ))}
+          <div className="space-y-4">
 
+            {/* Profile Picture */}
             <div>
-              <p className="text-gray-700 font-medium">Email Verified:</p>
-              <p className="mt-1 text-gray-600">
-                {user.emailVerified ? "Yes" : "No"}
-              </p>
+              <label className="block font-medium mb-1">Profile Picture URL</label>
+              <input
+                type="text"
+                name="profilePicture"
+                value={form.profilePicture || ""}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              />
+              {form.profilePicture && <img src={form.profilePicture} alt="Profile" className="mt-2 w-32 h-32 rounded-full object-cover" />}
             </div>
-          </div>
 
-          <div className="mt-6 flex justify-center space-x-4">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-teal-500 text-white px-6 py-2 rounded-full hover:bg-teal-600 transition"
-                >
-                  {saving ? "Saving..." : "Save"}
-                </button>
-                <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    setEditableUser(user);
-                  }}
-                  className="bg-gray-300 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-400 transition"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="bg-teal-500 text-white px-6 py-2 rounded-full hover:bg-teal-600 transition"
+            {/* Name */}
+            <div>
+              <label className="block font-medium">Name</label>
+              <input
+                type="text"
+                name="name"
+                value={form.name || ""}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block font-medium">Email</label>
+              <input
+                type="email"
+                name="email"
+                value={form.email || ""}
+                disabled
+                className="w-full p-3 border rounded-lg bg-gray-100 focus:outline-none"
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div>
+              <label className="block font-medium">Phone Number</label>
+              <input
+                type="text"
+                name="phoneNumber"
+                value={form.phoneNumber || ""}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              />
+            </div>
+
+            {/* Address */}
+            <div>
+              <label className="block font-medium">Address</label>
+              <input
+                type="text"
+                name="address"
+                value={form.address || ""}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              />
+            </div>
+
+            {/* Blood Group */}
+            <div>
+              <label className="block font-medium">Blood Group</label>
+              <input
+                type="text"
+                name="bloodGroup"
+                value={form.bloodGroup || ""}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              />
+            </div>
+
+            {/* Allergies */}
+            <div>
+              <label className="block font-medium">Allergies</label>
+              <input
+                type="text"
+                name="allergies"
+                value={form.allergies || ""}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              />
+            </div>
+
+            {/* Chronic Diseases */}
+            <div>
+              <label className="block font-medium">Chronic Diseases</label>
+              <input
+                type="text"
+                name="chronicDiseases"
+                value={form.chronicDiseases || ""}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              />
+            </div>
+
+            {/* State */}
+            <div>
+              <label className="block font-medium">State</label>
+              <input
+                type="text"
+                name="state"
+                value={form.state || ""}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              />
+            </div>
+
+            {/* District */}
+            <div>
+              <label className="block font-medium">District</label>
+              <input
+                type="text"
+                name="district"
+                value={form.district || ""}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              />
+            </div>
+
+            {/* Pincode */}
+            <div>
+              <label className="block font-medium">Pincode</label>
+              <input
+                type="text"
+                name="pincode"
+                value={form.pincode || ""}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              />
+            </div>
+
+            {/* Language */}
+            <div>
+              <label className="block font-medium">Language</label>
+              <select
+                name="language"
+                value={form.language || "hi"}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
               >
-                Edit Profile
-              </button>
-            )}
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+                <option value="ta">Tamil</option>
+                <option value="te">Telugu</option>
+                <option value="bn">Bengali</option>
+                <option value="mr">Marathi</option>
+              </select>
+            </div>
+
+            {/* Notification Preferences */}
+            <div>
+              <label className="block font-medium mb-1">Notification Preferences</label>
+              <div className="flex space-x-4">
+                <label>
+                  <input
+                    type="checkbox"
+                    name="whatsapp"
+                    checked={form.notificationPreference?.whatsapp || false}
+                    onChange={(e) => handleNestedChange(e, "notificationPreference")}
+                    disabled={!editMode}
+                  /> WhatsApp
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    name="sms"
+                    checked={form.notificationPreference?.sms || false}
+                    onChange={(e) => handleNestedChange(e, "notificationPreference")}
+                    disabled={!editMode}
+                  /> SMS
+                </label>
+              </div>
+            </div>
+
+            {/* Risk Category */}
+            <div>
+              <label className="block font-medium">Risk Category</label>
+              <select
+                name="riskCategory"
+                value={form.riskCategory || "normal"}
+                onChange={handleChange}
+                disabled={!editMode}
+                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                  editMode ? "focus:ring-[#00acc1]" : "bg-gray-100"
+                }`}
+              >
+                <option value="normal">Normal</option>
+                <option value="elderly">Elderly</option>
+                <option value="pregnant">Pregnant</option>
+                <option value="child">Child</option>
+                <option value="chronic_disease">Chronic Disease</option>
+              </select>
+            </div>
+
+            {/* Active */}
+            <div>
+              <label className="block font-medium mb-1">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  checked={form.isActive || false}
+                  onChange={handleChange}
+                  disabled={!editMode}
+                  className="mr-2"
+                />
+                Active
+              </label>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-center space-x-4 mt-6">
+              {!editMode ? (
+                <button
+                  onClick={() => setEditMode(true)}
+                  className="py-2 px-6 bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white font-semibold rounded-lg hover:shadow-lg transition"
+                >
+                  Edit Profile
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleUpdate}
+                    disabled={loading}
+                    className="py-2 px-6 bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white font-semibold rounded-lg hover:shadow-lg transition"
+                  >
+                    {loading ? "Saving..." : "Save Changes"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setForm(user);
+                      setEditMode(false);
+                    }}
+                    className="py-2 px-6 bg-gray-300 text-gray-700 font-semibold rounded-lg hover:shadow-lg transition"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
+
           </div>
         </div>
       </div>
@@ -181,4 +374,4 @@ const UserProfile = () => {
   );
 };
 
-export default UserProfile;
+export default Profile;
