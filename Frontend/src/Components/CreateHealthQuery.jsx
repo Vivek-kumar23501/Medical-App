@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+const BASE_URL = "http://localhost:8080";
 
 const PatientQueryForm = () => {
   const [formData, setFormData] = useState({
@@ -11,37 +14,43 @@ const PatientQueryForm = () => {
     symptoms: "",
     medicalHistory: "",
   });
-
   const [medicalReport, setMedicalReport] = useState(null);
+  const [queries, setQueries] = useState([]);
 
-  // Handle form input
+  // ---------------- FETCH QUERIES ----------------
+  const fetchQueries = async () => {
+    try {
+      const res = await axios.get(`${BASE_URL}/api/patient-query/all`);
+      if (res.data.success) setQueries(res.data.queries);
+    } catch (err) {
+      console.error("Failed to fetch queries", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchQueries();
+  }, []);
+
+  // ---------------- HANDLE INPUT CHANGE ----------------
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle file upload
   const handleFileChange = (e) => {
     setMedicalReport(e.target.files[0]);
   };
 
-  // Submit Form
+  // ---------------- HANDLE SUBMIT ----------------
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const data = new FormData();
     Object.entries(formData).forEach(([key, value]) => data.append(key, value));
     if (medicalReport) data.append("medicalReport", medicalReport);
 
     try {
-      const res = await fetch("http://localhost:5000/api/patient-query/submit", {
-        method: "POST",
-        body: data,
-      });
-
-      const result = await res.json();
-
-      if (result.success) {
-        alert("Query Submitted Successfully!");
+      const res = await axios.post(`${BASE_URL}/api/patient-query/submit`, data);
+      if (res.data.success) {
+        alert(res.data.message);
         setFormData({
           fullName: "",
           email: "",
@@ -53,169 +62,106 @@ const PatientQueryForm = () => {
           medicalHistory: "",
         });
         setMedicalReport(null);
+        fetchQueries();
       } else {
-        alert(result.message);
+        alert(res.data.message);
       }
-
-    } catch (error) {
-      console.error(error);
-      alert("Server error! Please try again later.");
+    } catch (err) {
+      console.error(err);
+      alert("Server error! Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#e0f7fa] flex justify-center items-center py-10 mt-[10vh] md:mt-0">
-      <div className="w-full max-w-4xl bg-white shadow-xl rounded-xl p-8 border-t-4 border-blue-600">
-
+    <div className="min-h-screen bg-[#e0f7fa] flex flex-col items-center py-10">
+      <div className="w-full max-w-4xl bg-white shadow-xl rounded-xl p-8 mb-10 border-t-4 border-blue-600">
         <h2 className="text-2xl font-bold text-blue-700 uppercase text-center mb-6">
           Patient Health Query Form
         </h2>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          <div>
-            <label className="block font-semibold text-gray-700 mb-1">
-              Full Name *
-            </label>
-            <input
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              type="text"
-              required
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
-              placeholder="Enter patient name"
-            />
-          </div>
-
-          <div>
-            <label className="block font-semibold text-gray-700 mb-1">
-              Email *
-            </label>
-            <input
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              type="email"
-              required
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
-              placeholder="Enter email address"
-            />
-          </div>
-
-          <div>
-            <label className="block font-semibold text-gray-700 mb-1">
-              Mobile Number *
-            </label>
-            <input
-              name="mobile"
-              value={formData.mobile}
-              onChange={handleChange}
-              type="text"
-              required
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
-              placeholder="xxxxxxxxxx"
-            />
-          </div>
-
-          <div>
-            <label className="block font-semibold text-gray-700 mb-1">
-              Age *
-            </label>
-            <input
-              name="age"
-              value={formData.age}
-              onChange={handleChange}
-              type="number"
-              required
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
-              placeholder="Enter age"
-            />
-          </div>
-
-          <div>
-            <label className="block font-semibold text-gray-700 mb-1">
-              Gender *
-            </label>
-            <select
-              name="gender"
-              value={formData.gender}
-              onChange={handleChange}
-              required
-              className="w-full p-3 border border-gray-300 rounded-lg text-gray-600 focus:ring-2 focus:ring-blue-600"
-            >
-              <option value="">Select gender</option>
-              <option>Male</option>
-              <option>Female</option>
-              <option>Other</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block font-semibold text-gray-700 mb-1">
-              Symptoms Duration (Days) *
-            </label>
-            <input
-              name="symptomsDuration"
-              value={formData.symptomsDuration}
-              onChange={handleChange}
-              type="number"
-              required
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
-              placeholder="Ex: 3 days"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block font-semibold text-gray-700 mb-1">
-              Symptoms *
-            </label>
-            <textarea
-              name="symptoms"
-              value={formData.symptoms}
-              onChange={handleChange}
-              required
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 h-24"
-              placeholder="Describe symptoms clearly"
-            ></textarea>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block font-semibold text-gray-700 mb-1">
-              Previous Medical History *
-            </label>
-            <textarea
-              name="medicalHistory"
-              value={formData.medicalHistory}
-              onChange={handleChange}
-              required
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 h-24"
-              placeholder="Any major illness, allergy, ongoing medication..."
-            ></textarea>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block font-semibold text-gray-700 mb-1">
-              Upload Medical Reports (Optional)
-            </label>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 bg-gray-50 focus:ring-2 focus:ring-blue-600"
-              accept=".pdf,.jpg,.jpeg,.png"
-            />
-          </div>
-
-          <div className="md:col-span-2 flex justify-center">
-            <button
-              type="submit"
-              className="bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white px-10 py-3 rounded-lg font-semibold text-lg hover:opacity-90 transition-all shadow-md"
-            >
-              Submit Query
-            </button>
-          </div>
-
+          <input
+            type="text" name="fullName" placeholder="Full Name" required
+            value={formData.fullName} onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
+          />
+          <input
+            type="email" name="email" placeholder="Email" required
+            value={formData.email} onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
+          />
+          <input
+            type="text" name="mobile" placeholder="Mobile" required
+            value={formData.mobile} onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
+          />
+          <input
+            type="number" name="age" placeholder="Age" required
+            value={formData.age} onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
+          />
+          <select
+            name="gender" required value={formData.gender} onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
+          >
+            <option value="">Select Gender</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+          <input
+            type="number" name="symptomsDuration" placeholder="Symptoms Duration (Days)" required
+            value={formData.symptomsDuration} onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600"
+          />
+          <textarea
+            name="symptoms" placeholder="Symptoms" required
+            value={formData.symptoms} onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 md:col-span-2 h-24"
+          />
+          <textarea
+            name="medicalHistory" placeholder="Medical History" required
+            value={formData.medicalHistory} onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 md:col-span-2 h-24"
+          />
+          <input
+            type="file" onChange={handleFileChange}
+            className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-600 md:col-span-2"
+          />
+          <button
+            type="submit"
+            className="bg-gradient-to-r from-[#00796b] to-[#00acc1] text-white px-10 py-3 rounded-lg font-semibold text-lg hover:opacity-90 transition-all shadow-md md:col-span-2"
+          >
+            Submit Query
+          </button>
         </form>
+      </div>
+
+      {/* ---------------- LIST QUERIES ---------------- */}
+      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4">
+        {queries.map((item) => (
+          <div key={item._id} className="bg-white shadow-md p-4 rounded-lg border border-gray-200">
+            <h3 className="font-bold text-lg">{item.fullName}</h3>
+            <p className="text-gray-600">Email: {item.email}</p>
+            <p className="text-gray-600">Mobile: {item.mobile}</p>
+            <p className="text-gray-600">Age: {item.age}</p>
+            <p className="text-gray-600">Gender: {item.gender}</p>
+            <p className="text-gray-600">Symptoms Duration: {item.symptomsDuration} days</p>
+            <p className="text-gray-700">Symptoms: {item.symptoms}</p>
+            <p className="text-gray-700">Medical History: {item.medicalHistory}</p>
+
+            {item.medicalReport && (
+              <a
+                href={`${BASE_URL}/${item.medicalReport}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 font-semibold mt-2 inline-block"
+              >
+                View / Download Report
+              </a>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

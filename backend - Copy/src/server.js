@@ -47,7 +47,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // -------------------- Serve Static Files --------------------
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
 
 // -------------------- Health Check --------------------
 app.get("/health", (req, res) => {

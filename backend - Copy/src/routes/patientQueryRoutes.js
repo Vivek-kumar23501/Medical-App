@@ -5,10 +5,11 @@ import path from "path";
 
 const router = express.Router();
 
-// Multer Storage Configuration
+// ---------------- MULTER STORAGE CONFIG ----------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/reports"); // ensure folder exists
+    const dir = "uploads/reports";
+    cb(null, dir);
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -17,7 +18,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// -------------------- SAVE PATIENT QUERY --------------------
+// -------------------- SUBMIT PATIENT QUERY --------------------
 router.post("/submit", upload.single("medicalReport"), async (req, res) => {
   try {
     const {
@@ -47,9 +48,7 @@ router.post("/submit", upload.single("medicalReport"), async (req, res) => {
       });
     }
 
-    const filePath = req.file
-      ? path.join("uploads/reports", req.file.filename)
-      : null;
+    const filePath = req.file ? `uploads/reports/${req.file.filename}` : null;
 
     const newQuery = new PatientQuery({
       fullName,
@@ -65,13 +64,13 @@ router.post("/submit", upload.single("medicalReport"), async (req, res) => {
 
     await newQuery.save();
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       message: "Patient health query submitted successfully!",
     });
   } catch (error) {
     console.error("Error saving query:", error);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: "Server error! Please try again later.",
     });
@@ -82,17 +81,10 @@ router.post("/submit", upload.single("medicalReport"), async (req, res) => {
 router.get("/all", async (req, res) => {
   try {
     const queries = await PatientQuery.find().sort({ createdAt: -1 });
-
-    return res.status(200).json({
-      success: true,
-      queries: queries || [],
-    });
+    res.status(200).json({ success: true, queries });
   } catch (error) {
     console.error("Error fetching queries:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 

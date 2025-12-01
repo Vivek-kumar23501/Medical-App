@@ -2,6 +2,9 @@ import User from "../models/User.js";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
 
 dotenv.config();
 
@@ -16,8 +19,32 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// In-memory refresh token store (replace with DB/Redis for production)
+// In-memory refresh token store (replace with DB/Redis in production)
 const refreshTokensStore = new Map();
+
+// ---------------- Multer setup for profile picture ----------------
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = "uploads/";
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `profile-${Date.now()}${ext}`);
+  },
+});
+
+export const uploadProfilePicture = multer({
+  storage,
+  fileFilter(req, file, cb) {
+    const allowed = ["image/jpeg", "image/jpg", "image/png"];
+    if (!allowed.includes(file.mimetype)) {
+      return cb(new Error("Only images are allowed"));
+    }
+    cb(null, true);
+  },
+});
 
 // ---------------- Helper: send OTP email ----------------
 const sendOTPEmail = async (email, otp, name) => {
@@ -256,15 +283,63 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// profile of logged-in user
-
+// ---------------- GET Profile ----------------
 export const getProfile = async (req, res) => {
   try {
-    // req.user contains decoded JWT payload (id, role)
-    const user = await User.findById(req.user.id).select("-passwordHash -__v"); 
+    const user = await User.findById(req.user.id).select(
+      "-passwordHash -otpCode -otpExpiry -__v"
+    );
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     res.json({ success: true, data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ---------------- UPDATE Profile ----------------
+export const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const updateData = {};
+
+    const allowedFields = [
+      "name",
+      "phoneNumber",
+      "address",
+      "bloodGroup",
+      "allergies",
+      "chronicDiseases",
+      "state",
+      "district",
+      "pincode",
+      "language",
+      "notificationPreference",
+      "riskCategory",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) updateData[field] = req.body[field];
+    });
+
+    if (req.file) {
+      updateData.profilePicture = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select("-passwordHash -otpCode -otpExpiry -__v");
+
+    if (!updatedUser)
+      return res.status(404).json({ success: false, message: "User not found" });
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedUser,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

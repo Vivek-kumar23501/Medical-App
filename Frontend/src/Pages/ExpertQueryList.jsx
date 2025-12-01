@@ -6,7 +6,7 @@ const ExpertQueryList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const BASE_URL = "http://localhost:5000";
+  const BASE_URL = "http://localhost:8080";
 
   // Fetch all patient queries
   const fetchQueries = async () => {

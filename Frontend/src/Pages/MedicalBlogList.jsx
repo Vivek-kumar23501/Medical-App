@@ -6,7 +6,7 @@ const MedicalBlogList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const BASE_URL = "http://localhost:5000"; // backend base URL
+  const BASE_URL = "http://localhost:8080"; // backend base URL
 
   // Fetch all blogs
   const fetchBlogs = async () => {

@@ -12,12 +12,14 @@ const Login = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // Redirect if user already logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) {
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (user?.role) redirectByRole(user.role);
-    }
+    const user = localStorage.getItem("user")
+      ? JSON.parse(localStorage.getItem("user"))
+      : null;
+
+    if (token && user?.role) redirectByRole(user.role);
   }, []);
 
   const handleChange = (e) => {
@@ -60,9 +62,13 @@ const Login = () => {
     setSuccess("");
 
     try {
-      const res = await axios.post("http://localhost:8080/auth/login", form, {
-        withCredentials: true, // important for cookies (refresh token)
-      });
+      const res = await axios.post(
+        "http://localhost:8080/auth/login",
+        form,
+        {
+          withCredentials: true, // important for refresh token cookies
+        }
+      );
 
       if (res.data.success) {
         const { accessToken, user } = res.data;
@@ -74,7 +80,9 @@ const Login = () => {
         setTimeout(() => redirectByRole(user.role), 1000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Invalid email or password");
+      setError(
+        err.response?.data?.message || "Login failed. Invalid email or password"
+      );
       if (err.response?.status === 401) {
         setForm((prev) => ({ ...prev, password: "" }));
       }
@@ -105,14 +113,22 @@ const Login = () => {
 
           {/* RIGHT PANEL */}
           <div className="md:flex-1 p-10">
-            <h2 className="text-2xl font-bold mb-6 text-center text-teal-900">Login to your account</h2>
+            <h2 className="text-2xl font-bold mb-6 text-center text-teal-900">
+              Login to your account
+            </h2>
 
-            {error && <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>}
-            {success && <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">{success}</div>}
+            {error && (
+              <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>
+            )}
+            {success && (
+              <div className="bg-green-100 text-green-700 p-2 mb-4 rounded">{success}</div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block mb-1 font-medium text-gray-700">Email Address *</label>
+                <label className="block mb-1 font-medium text-gray-700">
+                  Email Address *
+                </label>
                 <input
                   type="email"
                   name="email"
@@ -125,7 +141,9 @@ const Login = () => {
               </div>
 
               <div>
-                <label className="block mb-1 font-medium text-gray-700">Password *</label>
+                <label className="block mb-1 font-medium text-gray-700">
+                  Password *
+                </label>
                 <input
                   type="password"
                   name="password"
@@ -134,26 +152,36 @@ const Login = () => {
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-cyan-400"
                 />
-                {errors.password && <p className="text-red-600 mt-1">{errors.password}</p>}
+                {errors.password && (
+                  <p className="text-red-600 mt-1">{errors.password}</p>
+                )}
               </div>
 
               <button
                 type="submit"
-                className={`w-full p-3 rounded-lg text-white font-semibold bg-gradient-to-r from-[#00796b] to-[#00acc1] hover:shadow-lg transition ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
-                disabled={loading}
+                className={`w-full p-3 rounded-lg text-white font-semibold bg-gradient-to-r from-[#00796b] to-[#00acc1] hover:shadow-lg transition ${
+                  loading ? "opacity-70 cursor-not-allowed" : ""
+                }`}
+                disabled={loading || !form.email || !form.password}
               >
                 {loading ? "Logging in..." : "Login"}
               </button>
 
               <div className="mt-4 text-center space-y-1">
                 <div>
-                  <Link to="/forgot-password" className="text-cyan-600 font-semibold hover:underline">
+                  <Link
+                    to="/forgot-password"
+                    className="text-cyan-600 font-semibold hover:underline"
+                  >
                     Forgot Password?
                   </Link>
                 </div>
                 <div>
                   Don’t have an account?{" "}
-                  <Link to="/signup" className="text-cyan-600 font-semibold hover:underline">
+                  <Link
+                    to="/signup"
+                    className="text-cyan-600 font-semibold hover:underline"
+                  >
                     Sign up here
                   </Link>
                 </div>
