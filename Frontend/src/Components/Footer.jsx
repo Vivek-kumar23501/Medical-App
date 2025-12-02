@@ -1,67 +1,105 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from 'react';
 
-const Footer = () => {
+// Slide data with normal src paths
+const slidesData = [
+  {
+    id: 1,
+    title: 'Experience the Future',
+    subtitle: 'Cutting-edge technology at your fingertips.',
+    image: '/Solution.png', // public folder image
+  },
+  {
+    id: 2,
+    title: 'Unmatched Performance',
+    subtitle: 'Speed and efficiency you can rely on.',
+    image: '/Performance.png', // public folder image
+  },
+  {
+    id: 3,
+    title: 'Designed for Creativity',
+    subtitle: 'Empowering artists and innovators worldwide.',
+    image: '/Creativity.png', // public folder image
+  },
+];
+
+const HeroSliderTailwind = ({ interval = 5000 }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const totalSlides = slidesData.length;
+
+  const goToNextSlide = useCallback(() => {
+    setActiveIndex((prevIndex) => (prevIndex + 1) % totalSlides);
+  }, [totalSlides]);
+
+  const goToPrevSlide = () => {
+    setActiveIndex((prevIndex) => (prevIndex - 1 + totalSlides) % totalSlides);
+  };
+
+  useEffect(() => {
+    if (interval > 0) {
+      const sliderInterval = setInterval(goToNextSlide, interval);
+      return () => clearInterval(sliderInterval);
+    }
+  }, [goToNextSlide, interval]);
+
+  const renderDots = () =>
+    slidesData.map((_, index) => (
+      <span
+        key={index}
+        className={`w-3 h-3 rounded-full cursor-pointer transition-all duration-300 ${
+          index === activeIndex ? 'bg-white scale-110' : 'bg-gray-400 opacity-60 hover:opacity-100'
+        }`}
+        onClick={() => setActiveIndex(index)}
+        aria-label={`Go to slide ${index + 1}`}
+      ></span>
+    ));
+
+  const currentSlide = slidesData[activeIndex];
+
   return (
-    <div className="bg-[#00796b] text-white py-10 font-[Poppins]">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
+    <div className="relative w-full h-screen overflow-hidden bg-gray-900 flex items-center justify-center">
+      {/* Slide Image using <img> tag */}
+      <img
+        src={currentSlide.image}
+        alt={currentSlide.title}
+        className="w-full h-full object-cover absolute inset-0"
+      />
 
-          {/* About Section */}
-          <div>
-            <img
-              src="/MedPulse logo.jpg"
-              alt="MedPulse Logo"
-              className="h-14 mb-3"
-            />
-            <p className="text-sm leading-6 text-[#e0f2f1]">
-              MedPulse is a multilingual AI chatbot designed to educate rural
-              and semi-urban populations about preventive healthcare, disease
-              symptoms, and vaccination schedules. Integrated with government
-              health databases for real-time alerts.
-            </p>
-          </div>
+      {/* Overlay for readability */}
+      <div className="absolute inset-0 bg-black bg-opacity-40"></div>
 
-          {/* Quick Links */}
-          <div>
-            <h5 className="text-base font-semibold mb-4">Quick Links</h5>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/" className="text-[#b2dfdb] hover:text-white">Home</Link></li>
-              <li><Link to="/health-awareness" className="text-[#b2dfdb] hover:text-white">Health Awareness</Link></li>
-              <li><Link to="/symptom-checker" className="text-[#b2dfdb] hover:text-white">Symptom Checker</Link></li>
-              <li><Link to="/vaccinations" className="text-[#b2dfdb] hover:text-white">Vaccinations</Link></li>
-              <li><Link to="/contact" className="text-[#b2dfdb] hover:text-white">Contact</Link></li>
-            </ul>
-          </div>
+      {/* Text Content */}
+      <div className="relative z-10 text-center text-white p-4 max-w-4xl">
+        <h1 className="text-5xl md:text-6xl font-extrabold mb-4 drop-shadow-lg">
+          {currentSlide.title}
+        </h1>
+        <p className="text-xl md:text-2xl mb-8 font-light">{currentSlide.subtitle}</p>
+        <button className="px-8 py-3 text-lg font-semibold text-white bg-indigo-600 rounded-full hover:bg-indigo-700 transition duration-300 shadow-xl">
+          Discover Now
+        </button>
+      </div>
 
-          {/* Resources */}
-          <div>
-            <h5 className="text-base font-semibold mb-4">Resources</h5>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/govt-programs" className="text-[#b2dfdb] hover:text-white">Govt Health Programs</Link></li>
-              <li><Link to="/dashboards" className="text-[#b2dfdb] hover:text-white">Govt Dashboards</Link></li>
-              <li><Link to="/ai-assistant" className="text-[#b2dfdb] hover:text-white">AI Tools</Link></li>
-              <li><Link to="/whatsapp-bot" className="text-[#b2dfdb] hover:text-white">WhatsApp Chatbot</Link></li>
-            </ul>
-          </div>
+      {/* Navigation Arrows */}
+      <button
+        className="absolute top-1/2 left-4 md:left-8 transform -translate-y-1/2 p-3 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 transition duration-300 z-20 focus:outline-none"
+        onClick={goToPrevSlide}
+        aria-label="Previous Slide"
+      >
+        &#10094;
+      </button>
+      <button
+        className="absolute top-1/2 right-4 md:right-8 transform -translate-y-1/2 p-3 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 transition duration-300 z-20 focus:outline-none"
+        onClick={goToNextSlide}
+        aria-label="Next Slide"
+      >
+        &#10095;
+      </button>
 
-          {/* Contact */}
-          <div>
-            <h5 className="text-base font-semibold mb-4">Contact</h5>
-            <p className="text-sm text-[#e0f2f1]">Government of Odisha</p>
-            <p className="text-sm text-[#e0f2f1]">Electronics & IT Department</p>
-            <p className="text-sm text-[#e0f2f1]">Email: info@medpulse.gov.in</p>
-            <p className="text-sm text-[#e0f2f1]">Phone: +91 12345 67890</p>
-          </div>
-        </div>
-
-        {/* Footer bottom */}
-        <div className="border-t border-[#004d40] mt-8 pt-4 text-center text-xs text-[#b2dfdb]">
-          &copy; 2025-26 Smart India Hackathon. All rights reserved. | SIH Project: SIH25049
-        </div>
+      {/* Dots */}
+      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3 z-20">
+        {renderDots()}
       </div>
     </div>
   );
 };
 
-export default Footer;
+export default HeroSliderTailwind;

@@ -1,71 +1,116 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { HeartPulse, Users, ShieldCheck, MessageCircle } from "lucide-react";
+import React, { useState, useEffect } from 'react';
 
-const info = [
-  {
-    icon: <HeartPulse size={28} />,
-    title: "Purpose of the Platform",
-    description:
-      "An AI chatbot designed to improve preventive healthcare awareness in rural and semi-urban communities.",
-  },
-  {
-    icon: <Users size={28} />,
-    title: "Who We Help",
-    description:
-      "Families, farmers, students, and local health workers who need simple and accurate medical guidance.",
-  },
-  {
-    icon: <ShieldCheck size={28} />,
-    title: "Why It Matters",
-    description:
-      "Lack of medical knowledge increases risk. Our platform ensures timely health education and alerts.",
-  },
-  {
-    icon: <MessageCircle size={28} />,
-    title: "How It Works",
-    description:
-      "Accessible via WhatsApp or SMS, providing answers in local languages with real-time outbreak notifications.",
-  },
-];
+const HeroSliderTailwind = ({ interval = 5000 }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const totalSlides = 3; // number of slides
 
-const AboutPlatform = () => {
+  // Auto-play next slide
+  useEffect(() => {
+    const sliderInterval = setInterval(() => {
+      setActiveIndex((prevIndex) => (prevIndex + 1) % totalSlides);
+    }, interval);
+    return () => clearInterval(sliderInterval);
+  }, [interval]);
+
+  const goToNextSlide = () => {
+    setActiveIndex((prevIndex) => (prevIndex + 1) % totalSlides);
+  };
+
+  const goToPrevSlide = () => {
+    setActiveIndex((prevIndex) => (prevIndex - 1 + totalSlides) % totalSlides);
+  };
+
   return (
-    <div className="bg-[#e0f7fa] py-16">
-      <div className="max-w-6xl mx-auto px-5">
-        <h2 className="text-center text-3xl md:text-4xl font-bold text-[#00695c] mb-12 font-['Roboto Slab']">
-          About This Platform
-        </h2>
+    <div className="relative w-full h-screen overflow-hidden bg-gray-900 flex items-center justify-center">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {info.map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 80, scale: 0.8 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ type: "spring", stiffness: 120, damping: 14, delay: i * 0.2 }}
-              viewport={{ once: true }}
-              whileHover={{ scale: 1.06 }}
-              className="p-6 rounded-xl bg-gradient-to-br from-[#00acc1] to-[#00796b]
-              text-white shadow-lg
-              hover:from-[#26c6da] hover:to-[#009688]
-              hover:shadow-2xl transition-all duration-500 cursor-pointer"
-            >
-              <div className="flex items-center gap-4 mb-3">
-                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center
-                transition-all duration-300 hover:bg-white/30">
-                  {item.icon}
-                </div>
-                <h3 className="text-xl font-semibold">{item.title}</h3>
-              </div>
-
-              <p className="text-sm opacity-95">{item.description}</p>
-            </motion.div>
-          ))}
+      {/* Slide 1 */}
+      {activeIndex === 0 && (
+        <div className="w-full h-full relative flex items-center justify-center">
+          <img src="/Solution.png" alt="Experience the Future" className="w-full h-full object-cover absolute inset-0" />
+          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          <div className="relative z-10 text-center text-white p-4 max-w-4xl">
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-4 drop-shadow-lg">
+              Experience the Future
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 font-light">
+              Cutting-edge technology at your fingertips.
+            </p>
+            <button className="px-8 py-3 text-lg font-semibold text-white bg-indigo-600 rounded-full hover:bg-indigo-700 transition duration-300 shadow-xl">
+              Discover Now
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Slide 2 */}
+      {activeIndex === 1 && (
+        <div className="w-full h-full relative flex items-center justify-center">
+          <img src="/Performance.png" alt="Unmatched Performance" className="w-full h-full object-cover absolute inset-0" />
+          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          <div className="relative z-10 text-center text-white p-4 max-w-4xl">
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-4 drop-shadow-lg">
+              Unmatched Performance
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 font-light">
+              Speed and efficiency you can rely on.
+            </p>
+            <button className="px-8 py-3 text-lg font-semibold text-white bg-indigo-600 rounded-full hover:bg-indigo-700 transition duration-300 shadow-xl">
+              Discover Now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Slide 3 */}
+      {activeIndex === 2 && (
+        <div className="w-full h-full relative flex items-center justify-center">
+          <img src="/Creativity.png" alt="Designed for Creativity" className="w-full h-full object-cover absolute inset-0" />
+          <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+          <div className="relative z-10 text-center text-white p-4 max-w-4xl">
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-4 drop-shadow-lg">
+              Designed for Creativity
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 font-light">
+              Empowering artists and innovators worldwide.
+            </p>
+            <button className="px-8 py-3 text-lg font-semibold text-white bg-indigo-600 rounded-full hover:bg-indigo-700 transition duration-300 shadow-xl">
+              Discover Now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Arrows */}
+      <button
+        className="absolute top-1/2 left-4 md:left-8 transform -translate-y-1/2 p-3 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 transition duration-300 z-20 focus:outline-none"
+        onClick={goToPrevSlide}
+      >
+        &#10094;
+      </button>
+      <button
+        className="absolute top-1/2 right-4 md:right-8 transform -translate-y-1/2 p-3 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-75 transition duration-300 z-20 focus:outline-none"
+        onClick={goToNextSlide}
+      >
+        &#10095;
+      </button>
+
+      {/* Dots */}
+      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3 z-20">
+        <span
+          className={`w-3 h-3 rounded-full cursor-pointer transition-all duration-300 ${activeIndex === 0 ? 'bg-white scale-110' : 'bg-gray-400 opacity-60 hover:opacity-100'}`}
+          onClick={() => setActiveIndex(0)}
+        ></span>
+        <span
+          className={`w-3 h-3 rounded-full cursor-pointer transition-all duration-300 ${activeIndex === 1 ? 'bg-white scale-110' : 'bg-gray-400 opacity-60 hover:opacity-100'}`}
+          onClick={() => setActiveIndex(1)}
+        ></span>
+        <span
+          className={`w-3 h-3 rounded-full cursor-pointer transition-all duration-300 ${activeIndex === 2 ? 'bg-white scale-110' : 'bg-gray-400 opacity-60 hover:opacity-100'}`}
+          onClick={() => setActiveIndex(2)}
+        ></span>
       </div>
     </div>
   );
 };
 
-export default AboutPlatform;
+export default HeroSliderTailwind;

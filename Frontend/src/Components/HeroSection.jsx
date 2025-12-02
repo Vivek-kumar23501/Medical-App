@@ -1,117 +1,94 @@
-"use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
-const HeaderSlider = () => {
-  const sliderData = [
-    {
-      id: 1,
-      title: "Sustainably Crafted. Thoughtfully Delivered.",
-      offer: "Eco-Friendly Corporate",
-      desc: "Elevate your brand with sustainable corporate gifts that make a lasting impact.",
-      buttonText1: "Shop Now",
-      buttonText2: "Learn More",
-      imgSrc: "/Ayushman.png",
-    },
-    {
-      id: 2,
-      title: "Inspire Young Minds.",
-      offer: "School Merchandise",
-      desc: "Create unity and pride with personalized school merchandise that sparks creativity.",
-      buttonText1: "Design Now",
-      buttonText2: "View All",
-      imgSrc: "/crousal.jpg",
-    },
-    {
-      id: 3,
-      title: "Branded Goodies. Lasting Memories.",
-      offer: "Team & Event Specials",
-      desc: "Make your events memorable with custom-designed merchandise that tells your story.",
-      buttonText1: "Get Started",
-      buttonText2: "See Catalog",
-      imgSrc: "/minstry.png",
-    },
-  ];
+// Medical slides content
+const slidesData = [
+  {
+    id: 1,
+    title: 'MedPulse – Your Smart Digital Health Companion',
+    subtitle: 'Empowering communities with preventive healthcare knowledge and tips.',
+    image: '/crousal.jpg',
+  },
+  {
+    id: 2,
+    title: 'Book Appointments with Top Specialists',
+    subtitle: 'Easily find doctors and schedule consultations anytime, anywhere.',
+    image: '/crousal.jpg',
+  },
+  {
+    id: 3,
+    title: 'Track Your Health Progress',
+    subtitle: 'Receive personalized health reminders, medication alerts, and wellness tips.',
+    image: '/crousal.jpg',
+  },
+];
 
-  const [currentSlide, setCurrentSlide] = useState(0);
+const HeroSection = ({ interval = 5000 }) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const totalSlides = slidesData.length;
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % sliderData.length);
-    }, 4000);
+  const goToNextSlide = useCallback(() => {
+    setActiveIndex((prevIndex) => (prevIndex + 1) % totalSlides);
+  }, [totalSlides]);
 
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleSlideChange = (index) => {
-    setCurrentSlide(index);
+  const goToPrevSlide = () => {
+    setActiveIndex((prevIndex) => (prevIndex - 1 + totalSlides) % totalSlides);
   };
 
+  useEffect(() => {
+    if (interval > 0) {
+      const sliderInterval = setInterval(() => {
+        goToNextSlide();
+      }, interval);
+      return () => clearInterval(sliderInterval);
+    }
+  }, [goToNextSlide, interval]);
+
   return (
-    <div className="overflow-hidden relative w-full">
-      {/* Slider Container */}
+    <div className="relative w-full overflow-hidden mt-0 md:mt-20 sm:h-[80vh] h-[600px]">
+      {/* Slider track */}
       <div
-        className=" mt-10 mb-10  flex transition-transform duration-700 ease-in-out"
-        style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+        className="flex h-full transition-transform duration-700 ease-in-out"
+        style={{ transform: `translateX(-${activeIndex * 100}%)` }}
       >
-        {sliderData.map((slide, index) => (
+        {slidesData.map((slide) => (
           <div
             key={slide.id}
-            className="flex-none min-w-[calc(100%-80px)] mx-10 flex flex-col-reverse md:flex-row items-center justify-between bg-[#E6E9F2] py-8 md:px-14 px-5 mt-6 rounded-xl"
+            className="flex-none w-full relative flex items-center justify-center h-full bg-[#e0f7fa] py-16"
           >
-            <div className="md:pl-8 mt-10 md:mt-0">
-              <span className="inline-block px-4 py-1 bg-orange-100 text-orange-600 rounded-full text-sm font-medium">
-                {slide.offer}
-              </span>
+            {/* Optional image */}
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="absolute w-full h-full object-cover opacity-60"
+            />
+            {/* Content */}
+            <div className="relative z-10 text-center px-5">
+              <h1 className="text-gray-800 text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">{slide.title}</h1>
+              <p className="text-gray-700 text-lg md:text-xl font-medium drop-shadow-md">{slide.subtitle}</p>
+              <button className="mt-6 px-6 py-3 bg-gradient-to-r from-teal-900 to-cyan-500 text-white font-semibold rounded-lg uppercase transition duration-300 hover:from-teal-800 hover:to-cyan-600">
+  Get Started
+</button>
 
-              <h1 className="max-w-lg md:text-[42px] md:leading-[1.2] text-2xl font-bold text-gray-800 mt-4">
-                {slide.title}
-              </h1>
-
-              <p className="max-w-md text-gray-600 mt-4 text-base md:text-lg font-light">
-                {slide.desc}
-              </p>
-
-              <div className="flex items-center gap-4 mt-8">
-                <button className="px-8 py-2.5 bg-orange-600 rounded-full text-white font-medium hover:bg-orange-700 transition-colors">
-                  {slide.buttonText1}
-                </button>
-
-                <button className="group flex items-center gap-2 px-6 py-2.5 font-medium text-gray-700 hover:text-orange-600 transition-colors">
-                  {slide.buttonText2}
-                  <img
-                    className="group-hover:translate-x-1 transition-transform w-4"
-                    src="/MedPulse logo.jpg"
-                    alt="arrow"
-                  />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center flex-1 justify-center">
-              <img
-                className="md:w-72 w-48 object-contain"
-                src={slide.imgSrc}
-                alt={`Slide ${index + 1}`}
-              />
             </div>
           </div>
         ))}
       </div>
 
-      {/* Dots */}
-      <div className="flex items-center justify-center gap-2 mt-8">
-        {sliderData.map((_, index) => (
-          <div
-            key={index}
-            onClick={() => handleSlideChange(index)}
-            className={`h-2.5 w-2.5 rounded-full cursor-pointer transition-all duration-300 ${
-              currentSlide === index ? "bg-orange-600 scale-110" : "bg-gray-500/30"
-            }`}
-          ></div>
-        ))}
-      </div>
+      {/* Navigation arrows */}
+      <button
+        onClick={goToPrevSlide}
+        className="absolute top-1/2 left-5 -translate-y-1/2 bg-black bg-opacity-50 text-white p-3 rounded-md hover:bg-opacity-75 z-20"
+      >
+        &#10094;
+      </button>
+      <button
+        onClick={goToNextSlide}
+        className="absolute top-1/2 right-5 -translate-y-1/2 bg-black bg-opacity-50 text-white p-3 rounded-md hover:bg-opacity-75 z-20"
+      >
+        &#10095;
+      </button>
     </div>
   );
 };
 
-export default HeaderSlider;
+export default HeroSection;
