@@ -189,13 +189,13 @@ class MedicalExpertNavbar extends Component {
                 <NavLink tag={Link} to="/Medical-dashboard/create-blog"> Blog</NavLink>
               </NavItem>
 
-              <NavItem>
-                <NavLink tag={Link} to="/Medical-dashboard/alerts">Health Alerts</NavLink>
-              </NavItem>
+              
 
-              <NavItem>
-                <NavLink tag={Link} to="/Medical-dashboard/knowledge-base">Knowledge Base</NavLink>
-              </NavItem>
+              
+             <NavItem><NavLink tag={Link} to="/Medical-dashboard/Dashboard">Dashboard</NavLink></NavItem>
+               <NavItem><NavLink tag={Link} to="/Medical-dashboard/Dailycheak">Daily Cheak</NavLink></NavItem>
+               <NavItem><NavLink tag={Link} to="/Medical-dashboard/AllOutbreak">All Outbreak</NavLink></NavItem>
+
             </Nav>
 
             {/* PROFILE DROPDOWN */}

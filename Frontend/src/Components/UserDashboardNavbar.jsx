@@ -54,10 +54,13 @@ class DashboardNavbar extends Component {
     }
   };
 
-  handleLogout = () => {
-    localStorage.removeItem("token"); // remove auth token
-    window.location.href = "/login"; // redirect to login page
-  };
+ handleLogout = () => {
+  localStorage.clear();       // will clear ALL stored data
+  window.location.href = "/login";  // redirect to login page
+};
+
+
+
 
   render() {
     const { user } = this.state;
@@ -179,9 +182,7 @@ class DashboardNavbar extends Component {
               <NavItem><NavLink tag={Link} to="/dashboard/vaccinations">Vaccinations</NavLink></NavItem>
               <NavItem><NavLink tag={Link} to="/dashboard/health-queires">Health Queries</NavLink></NavItem>
                <NavItem><NavLink tag={Link} to="/dashboard/outbreak">Health Alerts</NavLink></NavItem>
-               <NavItem><NavLink tag={Link} to="/dashboard/Dashboard">Dashboard</NavLink></NavItem>
-               <NavItem><NavLink tag={Link} to="/dashboard/Dailycheak">Daily Cheak</NavLink></NavItem>
-               <NavItem><NavLink tag={Link} to="/dashboard/AllOutbreak">All Outbreak</NavLink></NavItem>
+  
             </Nav>
 
             {/* PROFILE DROPDOWN */}
