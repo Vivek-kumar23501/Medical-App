@@ -65,8 +65,10 @@ const HeroSection = ({ interval = 5000 }) => {
             <div className="relative z-10 text-center px-5">
               <h1 className="text-gray-800 text-4xl md:text-5xl font-bold mb-4 drop-shadow-lg">{slide.title}</h1>
               <p className="text-gray-700 text-lg md:text-xl font-medium drop-shadow-md">{slide.subtitle}</p>
-              <button className="mt-6 px-6 py-3 bg-gradient-to-r from-teal-900 to-cyan-500 text-white font-semibold rounded-lg uppercase transition duration-300 hover:from-teal-800 hover:to-cyan-600">
-  Get Started
+              <button style={{
+                width:"220px"
+              }} className="mt-6 px-6 py-3   bg-gradient-to-r from-teal-900 to-cyan-500 text-white font-semibold rounded-lg uppercase transition duration-300 hover:from-teal-800 hover:to-cyan-600">
+ <b>  Get Started </b>
 </button>
 
             </div>
