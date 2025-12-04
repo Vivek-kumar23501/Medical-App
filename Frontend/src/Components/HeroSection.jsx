@@ -45,7 +45,7 @@ const HeroSection = ({ interval = 5000 }) => {
   }, [goToNextSlide, interval]);
 
   return (
-    <div className="relative w-full overflow-hidden mt-0 md:mt-20 sm:h-[80vh] h-[600px]">
+    <div className="relative w-full overflow-hidden mt-0 md:mt-0 sm:h-[80vh] h-[600px]">
       {/* Slider track */}
       <div
         className="flex h-full transition-transform duration-700 ease-in-out"
