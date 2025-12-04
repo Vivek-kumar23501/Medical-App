@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { PhoneCall, Siren, Baby, Hospital, Mic, MapPin } from "lucide-react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
@@ -116,6 +116,15 @@ const ImpactScenarios = () => {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* CTA Button */}
+          <div className="text-center mt-12">
+            <Link to="/login">
+              <div className="inline-block bg-gradient-to-r from-[#00acc1] to-[#00796b] text-white py-3 px-6 rounded-lg shadow-lg text-lg font-semibold cursor-pointer hover:scale-105 transform transition-all duration-300">
+                💬 Try a Demo — Experience Real-time AI Health Support
+              </div>
+            </Link>
           </div>
         </div>
       </div>

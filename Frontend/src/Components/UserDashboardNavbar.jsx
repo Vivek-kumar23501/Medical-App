@@ -17,6 +17,7 @@ import {
   Col,
 } from "reactstrap";
 import { Link } from "react-router-dom";
+import { User } from "lucide-react";
 
 class DashboardNavbar extends Component {
   constructor(props) {
@@ -186,33 +187,34 @@ class DashboardNavbar extends Component {
             </Nav>
 
             {/* PROFILE DROPDOWN */}
-            <UncontrolledDropdown nav inNavbar>
-              <DropdownToggle nav>
-                <img
-                  src={user?.profilePicture || "/default-profile.jpg"}
-                  alt="Profile"
-                  className="profile-img"
-                />
-              </DropdownToggle>
+            
 
-              <DropdownMenu end>
-                <DropdownItem tag={Link} to="/dashboard/profile">
-                  View Profile
-                </DropdownItem>
-                <DropdownItem tag={Link} to="/dashboard/settings">
-                  Settings
-                </DropdownItem>
 
-                <div className="dropdown-footer">
-                  <DropdownItem
-                    onClick={this.handleLogout}
-                    className="logout-btn text-danger"
-                  >
-                    Logout
-                  </DropdownItem>
-                </div>
-              </DropdownMenu>
-            </UncontrolledDropdown>
+<UncontrolledDropdown nav inNavbar>
+  <DropdownToggle nav className="d-flex align-items-center">
+    <User
+      size={28}                       // size increase
+      className="cursor-pointer"
+      stroke="#4A90E2"                // custom color (blue)
+      strokeWidth={2.5}               // little bold
+    />
+  </DropdownToggle>
+
+  <DropdownMenu end>
+    <DropdownItem tag={Link} to="/dashboard/profile">
+      View Profile
+    </DropdownItem>
+
+    <DropdownItem
+      onClick={this.handleLogout}
+      className="text-danger"
+    >
+      Logout
+    </DropdownItem>
+  </DropdownMenu>
+</UncontrolledDropdown>
+
+
           </Collapse>
         </Navbar>
       </>

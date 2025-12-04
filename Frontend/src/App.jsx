@@ -26,6 +26,8 @@ import CheckOutbreak from "./Components/CheckOutbreak";
  import DailyCheck from "./Components/DailyCheck";
  import AllOutbreak from "./Components/AllOutbreaks";
  import Dashboard from "./Components/Dashboard";
+ import User from "./Pages/User";
+ import Medical from "./Pages/Medical";
  
 
 
@@ -59,6 +61,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
             <Route path="blog" element={<MedicalBlogList />} />
             <Route path="outbreak" element={<CheckOutbreak />} />
+            <Route path="/dashboard/*" element={<User />} />
             
          
         </Route>
@@ -79,6 +82,7 @@ function App() {
         <Route path="Dailycheak" element={<DailyCheck />} />
             <Route path="AllOutbreak" element={<AllOutbreak />} />
             <Route path="Dashboard" element={<Dashboard />} />
+            <Route path="/medical-dashboard/*" element={<Medical />} />
 
             
         </Route>

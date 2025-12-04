@@ -178,7 +178,7 @@ class MedicalExpertNavbar extends Component {
           <Collapse isOpen={this.state.isOpen} navbar>
             <Nav className="mx-auto" navbar>
               <NavItem>
-                <NavLink tag={Link} to="/Medical-dashboard">Dashboard</NavLink>
+                <NavLink tag={Link} to="/Medical-dashboard">Home</NavLink>
               </NavItem>
 
               <NavItem>

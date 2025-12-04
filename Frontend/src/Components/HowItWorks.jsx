@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { MessageCircle, Send, BrainCircuit, BellRing } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
@@ -25,7 +25,7 @@ const steps = [
     icon: <BellRing size={30} />,
     title: "Step 4: Receive Alerts & Reminders",
     desc: "Get vaccination reminders, precautions, and real-time outbreak notifications from trusted sources.",
-  }
+  },
 ];
 
 const HowItWorks = () => {
@@ -68,14 +68,18 @@ const HowItWorks = () => {
           </div>
 
           {/* CTA Box */}
-          <motion.div
-            initial={{ scale: 0.8 }}
-            whileInView={{ scale: 1 }}
-            transition={{ duration: 0.6 }}
-            className="mt-10 bg-gradient-to-r from-[#00acc1] to-[#00796b] text-white py-3 px-6 inline-block rounded-lg shadow-lg text-lg font-semibold"
-          >
-            💬 Try a Demo — Experience Real-time AI Health Support
-          </motion.div>
+          <div className="mt-10">
+            <Link to="/login">
+              <motion.div
+                initial={{ scale: 0.8 }}
+                whileInView={{ scale: 1 }}
+                transition={{ duration: 0.6 }}
+                className="bg-gradient-to-r from-[#00acc1] to-[#00796b] text-white py-3 px-6 inline-block rounded-lg shadow-lg text-lg font-semibold cursor-pointer"
+              >
+                💬 Try a Demo — Experience Real-time AI Health Support
+              </motion.div>
+            </Link>
+          </div>
         </div>
       </div>
 

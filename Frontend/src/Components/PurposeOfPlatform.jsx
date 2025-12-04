@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { HeartPulse, Users, MessageCircle, ShieldCheck } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 
@@ -74,14 +74,19 @@ const PurposeOfPlatform = () => {
               ))}
             </ul>
 
-            <motion.div
-              initial={{ scale: 0.95 }}
-              whileInView={{ scale: 1 }}
-              transition={{ duration: 0.35 }}
-              className="mt-6 bg-gradient-to-r from-[#00acc1] to-[#00796b] text-white py-3 px-5 inline-block rounded-lg shadow-lg font-semibold text-sm md:text-base"
-            >
-              🌿 A step towards a healthier, informed community
-            </motion.div>
+            {/* CTA Button */}
+            <div className="mt-6 text-center md:text-left">
+              <Link to="/login">
+                <motion.div
+                  initial={{ scale: 0.95 }}
+                  whileInView={{ scale: 1 }}
+                  transition={{ duration: 0.35 }}
+                  className="bg-gradient-to-r from-[#00acc1] to-[#00796b] text-white py-3 px-5 inline-block rounded-lg shadow-lg font-semibold text-sm md:text-base cursor-pointer hover:scale-105 transform transition-all duration-300"
+                >
+                  💬 Try a Demo — Experience Real-time Health Guidance
+                </motion.div>
+              </Link>
+            </div>
           </motion.div>
 
           {/* Right Image Section */}
