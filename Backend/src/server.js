@@ -9,20 +9,27 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import connectDB from "./config/database.js";
+
+// Routes
 import authRoutes from "./routes/authRoutes.js";
 import patientQueryRoutes from "./routes/patientQueryRoutes.js";
 import medicalBlogRoutes from "./routes/MedicalBlogRoutes.js";
 import outbreakRoutes from "./routes/outbreakRoutes.js";
+
+// Swagger Docs
+import { swaggerDocs } from "./swagger.js";
+
+// Scraper
 import scraper from "./scrapers/maharashtraScraper.js";
 
-// -------------------- Fix __dirname in ES Modules --------------------
+// -------------------- Fix __dirname for ES Modules --------------------
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // -------------------- Initialize Express --------------------
 const app = express();
 
-// -------------------- Connect to MongoDB --------------------
+// -------------------- Connect MongoDB --------------------
 connectDB();
 
 // -------------------- Security Middleware --------------------
@@ -32,7 +39,7 @@ app.use(
   })
 );
 
-// -------------------- CORS Configuration --------------------
+// -------------------- CORS --------------------
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || "*",
@@ -42,11 +49,11 @@ app.use(
   })
 );
 
-// -------------------- Body Parsing Middleware --------------------
+// -------------------- Body Parser --------------------
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// -------------------- Serve Static Files --------------------
+// -------------------- Static Upload Folder --------------------
 app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
 
 // -------------------- Health Check --------------------
@@ -58,15 +65,16 @@ app.get("/health", (req, res) => {
   });
 });
 
-// -------------------- Medical App Routes --------------------
+// -------------------- Swagger Documentation --------------------
+swaggerDocs(app); // <--- IMPORTANT
+
+// -------------------- API Routes --------------------
 app.use("/auth", authRoutes);
 app.use("/api/patient-query", patientQueryRoutes);
 app.use("/api/medical", medicalBlogRoutes);
-
-// -------------------- Outbreak Alert Routes --------------------
 app.use("/api/outbreaks", outbreakRoutes);
 
-// Run scraper manually
+// -------------------- Scraper Route --------------------
 app.get("/run-scraper", async (req, res) => {
   try {
     const result = await scraper();
@@ -77,7 +85,7 @@ app.get("/run-scraper", async (req, res) => {
   }
 });
 
-// Debug date route
+// -------------------- Debug Date --------------------
 app.get("/debug-date", (req, res) => {
   res.json({
     systemDate: new Date(),
@@ -103,11 +111,10 @@ app.use((err, req, res, next) => {
 });
 
 // -------------------- Start Server --------------------
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Unified Server running on port ${PORT}`);
-  console.log(`📝 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN}`);
+  console.log(`📘 Swagger Docs: http://localhost:${PORT}/api-docs`);
 });
 
 export default app;
